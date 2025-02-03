@@ -104,8 +104,7 @@ class LlavaProcessor(BaseProcessor):
         self.processor.tokenizer.padding_side = self.processor_config.get("padding_side", "left")
         
     def preprocess(self, 
-                  images: Union[List[Image.Image], Image.Image], 
-                  prompt: Optional[str] = None) -> Dict[str, torch.Tensor]:
+                  images: Union[List[Image.Image], Image.Image]) -> Dict[str, torch.Tensor]:
         """Preprocess images and text for model input.
         
         Args:
