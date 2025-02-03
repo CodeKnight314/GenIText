@@ -1,0 +1,30 @@
+model: 
+  model_id: "llava-hf/llava-v1.6-mistral-7b-hf",
+  device: "cuda", 
+  dtype: "float16", 
+  low_cpu_mem: true
+
+generation: 
+  max_new_tokens: 100, 
+  num_beams: 5,
+  do_sample: true, 
+  temperature: 0.7,
+  top_p: 0.9,
+  repetition_penalty: 1.2,
+  min_new_tokens: 10,
+  early_stopping: true,
+  length_penalty: 1.0,
+  no_repeat_ngram_size: 3,
+
+image:
+  height: 336
+  width: 336
+
+processor: 
+  padding_side: "left",
+  truncation: true,
+  max_length: 512,
+  return_tensors: "pt",
+  default_prompt: "Describe the image above in a few sentences.",
+
+batch_size: 4
