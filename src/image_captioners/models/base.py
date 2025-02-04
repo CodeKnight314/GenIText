@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Tuple, Union
 from PIL import Image
+import torch
 
 class BaseModel(ABC): 
     
@@ -19,11 +20,15 @@ class BaseModel(ABC):
 class BaseProcessor(ABC): 
     
     @abstractmethod
-    def preprocess(self, images: Union[List[Image.Image], Image.Image], **kwargs) -> Tuple:
+    def load_processor(self) -> None:  
         pass
     
     @abstractmethod
-    def postprocess(self, captions: Union[List[str], str], **kwargs) -> Union[List[str], str]:
+    def preprocess(self, images: Union[List[Image.Image], Image.Image]) -> torch.Tensor:
+        pass
+    
+    @abstractmethod
+    def postprocess(self, outputs: torch.Tensor) -> Union[str, List[str]]:
         pass
     
         
