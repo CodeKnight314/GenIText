@@ -92,19 +92,21 @@ class LlavaProcessor(BaseProcessor):
         self.batch_size = config["batch_size"]
         
         self.processor_config = config["processor"]
-        self.processor = LlavaNextProcessor.from_pretrained(self.model_id)
-        self._configure_processor()
+        self.load_processor()
     
-    def _configure_processor(self) -> None:
-        """Configure processor settings from config."""
+    def load_processor(self):
+        self.processor = LlavaNextProcessor.from_pretrained(
+            self.model_id
+        )
+        
         self.processor.image_processor.size = {
             "height": self.processor_config.get("image_size", {}).get("height", 336),
             "width": self.processor_config.get("image_size", {}).get("width", 336)
         }
         self.processor.tokenizer.padding_side = self.processor_config.get("padding_side", "left")
+
         
-    def preprocess(self, 
-                  images: Union[List[Image.Image], Image.Image]) -> Dict[str, torch.Tensor]:
+    def preprocess(self, images: Union[List[Image.Image], Image.Image]) -> torch.Tensor:
         """Preprocess images and text for model input.
         
         Args:
@@ -142,8 +144,7 @@ class LlavaProcessor(BaseProcessor):
         
         return inputs
     
-    def postprocess(self, 
-                   outputs: torch.Tensor) -> Union[str, List[str]]:
+    def postprocess(self, outputs: torch.Tensor) -> Union[str, List[str]]:
         """Convert model outputs to human-readable captions.
         
         Args:
