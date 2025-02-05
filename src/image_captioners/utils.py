@@ -2,6 +2,52 @@ import os
 from tqdm import tqdm
 import yaml
 from typing import Dict, List
+import kagglehub
+from random import sample
+
+def download_dataset():
+    """
+    Download testing dataset from Kaggle.
+    """
+    path = kagglehub.dataset_download("hadiepratamatulili/anime-vs-cartoon-vs-human")
+    return path
+
+def cut_data(dataset_path: str, sample_threshold: int):
+    """
+    Cut the dataset to a certain number of samples.
+    
+    Args:
+        dataset_path (str): Path to the dataset.
+        sample_threshold (int): Number of samples to keep.
+    """
+    if(len(os.listdir(dataset_path)) > sample_threshold):
+        files = os.listdir(dataset_path)
+        for file in sample(files, len(files) - sample_threshold):
+            os.remove(os.path.join(dataset_path, file))
+        print(f"[INFO] Removed {len(files) - sample_threshold} files")
+
+def prepare_data(sample_threshold: int = 100):
+    """
+    Prepare the dataset for training.
+    
+    Args:
+        sample_threshold (int): Number of samples to keep.
+        
+    Returns:
+        Tuple[List[str], List[str], List[str]]: List of anime, cartoon, and human images.
+    """
+    data_path = download_dataset()
+    print(f"[INFO] Data downloaded to {data_path}")
+    
+    anime_path = os.path.join(data_path, "anime")
+    cartoon_path = os.path.join(data_path, "cartoon")
+    human_path = os.path.join(data_path, "human")
+    
+    cut_data(anime_path, sample_threshold)
+    cut_data(cartoon_path, sample_threshold)
+    cut_data(human_path, sample_threshold)
+    
+    return os.listdir(anime_path), os.listdir(cartoon_path), os.listdir(human_path)
             
 def save_images(captions: List[Dict[str, str]], output_path: str = "output/samples/"):
     """
