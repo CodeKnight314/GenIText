@@ -1,8 +1,8 @@
 from models import *
-from typing import List, Union, Dict, Optional
+from typing import List, Dict
 from tqdm import tqdm
 
-class End2EndCaptionPipe():
+class End2EndCaptionPipeline():
     def __init__(self, model: str, config: str):
         """Initialize end-to-end captioning pipeline.
         
@@ -10,7 +10,8 @@ class End2EndCaptionPipe():
             model: Model to use for captioning
         """
         self.models = {
-            "llava": [LlavaModel, LlavaProcessor]
+            "llava": [LlavaModel, LlavaProcessor],
+            "vit_gpt2": [ViTGPT2Model, VITGPT2Processor]
         }
         if model not in self.models:
             raise ValueError(f"Model '{model}' not found.")
