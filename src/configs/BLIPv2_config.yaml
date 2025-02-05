@@ -1,0 +1,11 @@
+model:
+  model_id: "Salesforce/blip2-opt-2.7b"  # or other BLIP2 variant
+  use_fp16: true
+  load_in_8bit: true
+  
+generation:
+  max_new_tokens: 20
+  temperature: 0.3
+  num_beams: 3
+  do_sample: true
+  repetition_penalty: 1.2
