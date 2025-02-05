@@ -69,6 +69,8 @@ class VITGPT2Processor(BaseProcessor):
         )
         
     def preprocess(self, images: Union[List[Image.Image], Image.Image]): 
+        if isinstance(images, Image.Image): 
+            images = [images]
         pixel_values = self.feature_extractor(images, return_tensors="pt")
         return pixel_values.to(self.device)
     
