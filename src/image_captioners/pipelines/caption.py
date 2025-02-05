@@ -20,8 +20,8 @@ class End2EndCaptionPipe():
         
         self.batch_size = config["batch_size"]
          
-    def generate_captions(self, inputs: List[str]):
-        captions = {}
+    def generate_captions(self, inputs: List[str]) -> List[Dict[str, str]]:
+        caption_results = []
         
         for img_batch_idx in tqdm(range(0, len(inputs), self.batch_size)):
             img_batch = inputs[img_batch_idx:img_batch_idx + self.batch_size]
@@ -30,9 +30,10 @@ class End2EndCaptionPipe():
             captions = self.processor.postprocess(outputs)
             
             for i, img in enumerate(img_batch):
-                captions[img] = captions[i]
-                
-        return captions
+                row = {"image": img, "caption": captions[i]}    
+                caption_results.append(row)    
+                                
+        return caption_results
 
             
         
