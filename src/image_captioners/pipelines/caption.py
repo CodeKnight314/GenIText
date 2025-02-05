@@ -11,10 +11,11 @@ class End2EndCaptionPipeline():
         """
         self.models = {
             "llava": [LlavaModel, LlavaProcessor],
-            "vit_gpt2": [ViTGPT2Model, VITGPT2Processor]
+            "vit_gpt2": [ViTGPT2Model, VITGPT2Processor], 
+            "blipv2_style": [BLIPv2_StyleID, BLIPv2_Processor]
         }
         if model not in self.models:
-            raise ValueError(f"Model '{model}' not found.")
+            raise ValueError(f"[ERROR] Model '{model}' not found.")
         else: 
             self.model = self.models[model][0](config)
             self.processor = self.models[model][1](config)
@@ -22,6 +23,15 @@ class End2EndCaptionPipeline():
         self.batch_size = config["batch_size"]
          
     def generate_captions(self, inputs: List[str]) -> List[Dict[str, str]]:
+        """
+        Generate captions for a list of images.
+        
+        Args:
+            inputs: List of image paths
+        
+        Returns:
+            List of dictionaries formatted as {"image": str, "caption": str}
+        """
         caption_results = []
         
         for img_batch_idx in tqdm(range(0, len(inputs), self.batch_size)):
