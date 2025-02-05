@@ -10,5 +10,6 @@ __all__ = [
     "LlavaProcessor", 
     "ViTGPT2Model", 
     "VITGPT2Processor", 
-    "BLIPv2_StyleID"
+    "BLIPv2_StyleID", 
+    "BLIPv2_Processor"
 ]
