@@ -14,22 +14,13 @@ class LlavaModel(BaseModel):
             model_id: HuggingFace model identifier
             config: Path to configuration file
         """
-        config = load_config(config)
-        self.model_id = config["model"]["model_id"]
-        if config["model"]["device"] == "cuda" and torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
-        
-        self.gen_config = config["generation"]
+        super().__init__(config)
         self.load_model()
     
     def load_model(self) -> None:
         """Load and configure the LLaVA model."""
         self.model = LlavaForConditionalGeneration.from_pretrained(
-            self.model_id, 
-            torch_dtype=torch.float16, 
-            low_cpu_mem_usage=True
+            self.model_id
         ).to(self.device)
         
         self.model.config.eos_token_id = self.model.config.pad_token_id = 2
@@ -61,18 +52,6 @@ class LlavaModel(BaseModel):
                 no_repeat_ngram_size=self.gen_config.get("no_repeat_ngram_size", 3),
             )
         return outputs
-    
-    def model_info(self) -> Dict[str, Union[str, dict]]:
-        """Return model information and configuration.
-        
-        Returns:
-            Dictionary containing model metadata and settings
-        """
-        return {
-            "model_id": self.model_id,
-            "device": str(self.device),
-            "config": self.gen_config
-        }
 
 class LlavaProcessor(BaseProcessor):
     def __init__(self, 
