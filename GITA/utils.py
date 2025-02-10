@@ -81,18 +81,3 @@ def save_captions(captions: List[Dict[str, str]], output_path: str = "output"):
         for row in captions: 
             f.write(','.join(str(x) for x in row.values()) + '\n')
     print(f"Captions saved to {file_name}")
-
-def load_config(config_path: str):
-    """
-    Load configuration from a yaml file.
-    
-    Args:
-        config_path (str): Path to the configuration file.
-    """
-    if(not os.path.exists(config_path)):
-        raise ValueError(f"[ERROR] Config file {config_path} not found.")
-    try:
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
-    except Exception as e:
-        raise Exception(f"[ERROR] Error loading config file {config_path}: {e}")

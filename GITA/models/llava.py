@@ -1,9 +1,8 @@
-from base import BaseModel, BaseProcessor
+from .base import BaseModel, BaseProcessor
 import torch 
 from transformers import LlavaNextProcessor, LlavaForConditionalGeneration
 from typing import List, Union, Dict, Optional
 from PIL import Image
-from utils import load_config
 
 class LlavaModel(BaseModel):
     def __init__(self, 
@@ -62,7 +61,7 @@ class LlavaProcessor(BaseProcessor):
             model_id: HuggingFace model identifier
             config: Path to configuration file
         """
-        config = load_config(config)
+        config = self.load_config(config)
         self.model_id = config["model"]["model_id"]
         if config["model"]["device"] == "cuda" and torch.cuda.is_available():
             self.device = torch.device("cuda")

@@ -1,4 +1,4 @@
-from models import *
+from ..models import *
 from typing import List, Dict
 from tqdm import tqdm
 

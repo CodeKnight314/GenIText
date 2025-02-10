@@ -1,20 +1,12 @@
 from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
 import torch 
-from base import BaseModel, BaseProcessor 
+from .base import BaseModel, BaseProcessor
 from typing import List, Union
-from utils import load_config
 from PIL import Image
 
 class ViTGPT2Model(BaseModel):
     def __init__(self, config: str): 
-        config = load_config(config)
-        
-        self.model_id = config["model"]["model_id"]
-        if config["model"]["device"] == "cuda" and torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
-        self.gen_config = config["generation"]
+        super().__init__(config)
         
     def load_model(self):
         self.model = VisionEncoderDecoderModel.from_pretrained(
@@ -48,7 +40,7 @@ class ViTGPT2Model(BaseModel):
         
 class VITGPT2Processor(BaseProcessor): 
     def __init__(self, config: str): 
-        config = load_config(config)
+        config = self.load_config(config)
         self.model_id = config["model"]["model_id"]
         if config["model"]["device"] == "cuda" and torch.cuda.is_available():
             self.device = torch.device("cuda")

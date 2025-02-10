@@ -2,7 +2,7 @@ from PIL import Image
 from transformers import Blip2ForConditionalGeneration, Blip2Processor 
 import torch 
 from typing import List, Union
-from base import BaseModel, BaseProcessor
+from .base import BaseModel, BaseProcessor
 
 class BLIPv2_StyleID(BaseModel): 
     def __init__(self, config: str): 

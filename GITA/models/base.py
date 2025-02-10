@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Union
 from PIL import Image
 import torch
-from utils import load_config
+import yaml
+import os
 
 class BaseModel(ABC): 
     def __init__(self, config: str):
-        config = load_config(config)
+        config = self.load_config(config)
         self.model_id = config["model"]["model_id"]
         if config["model"]["device"] == "cuda" and torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -34,10 +35,25 @@ class BaseModel(ABC):
             "device": str(self.device),
             "config": self.gen_config
         }
+        
+    def load_config(config_path: str):
+        """
+        Load configuration from a yaml file.
+        
+        Args:
+            config_path (str): Path to the configuration file.
+        """
+        if(not os.path.exists(config_path)):
+            raise ValueError(f"[ERROR] Config file {config_path} not found.")
+        try:
+            with open(config_path, "r") as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            raise Exception(f"[ERROR] Error loading config file {config_path}: {e}")
     
 class BaseProcessor(ABC): 
     def __init__(self, config: str):
-        config = load_config(config)
+        config = self.load_config(config)
         self.model_id = config["model"]["model_id"]
         if config["model"]["device"] == "cuda" and torch.cuda.is_available(): 
             self.device = "cuda"
@@ -55,5 +71,20 @@ class BaseProcessor(ABC):
     @abstractmethod
     def postprocess(self, outputs: torch.Tensor) -> Union[str, List[str]]:
         pass
+    
+    def load_config(config_path: str):
+        """
+        Load configuration from a yaml file.
+        
+        Args:
+            config_path (str): Path to the configuration file.
+        """
+        if(not os.path.exists(config_path)):
+            raise ValueError(f"[ERROR] Config file {config_path} not found.")
+        try:
+            with open(config_path, "r") as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            raise Exception(f"[ERROR] Error loading config file {config_path}: {e}")
     
         

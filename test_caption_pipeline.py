@@ -1,7 +1,6 @@
-from image_captioners.utils import prepare_data, save_images, save_captions
-from image_captioners.pipelines.caption import End2EndCaptionPipeline
+from GITA import End2EndCaptionPipeline, prepare_data, save_images, save_captions
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 from transformers import CLIPProcessor, CLIPModel
 import logging
 from PIL import Image
@@ -111,7 +110,7 @@ def evaluate_multi_domain_captioning(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, required=True, choices=[End2EndCaptionPipeline.models.keys()], help="Model choice for End2End pipeline")
+    parser.add_argument("--model", type=str, required=True, help="Model choice for End2End pipeline")
     parser.add_argument("--config", type=str, required=True, help="Path to yaml config file for selected model.")
     parser.add_argument("--save", type=str, default="outputs/", help="Path to output path for images, captions, and txt files")
     parser.add_argument("--threshold", type=int, default=100, help="Threshold for number of testing samples to perserve.")
