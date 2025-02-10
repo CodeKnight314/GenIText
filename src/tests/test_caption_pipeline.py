@@ -8,9 +8,15 @@ from PIL import Image
 import torch
 import argparse
 
-def calculate_similarity_score(results: Dict[str, Dict[str]]) -> Dict[str, List[float]]:
+def calculate_similarity_score(results: Dict[str, List[Dict[str, str]]]) -> Dict[str, List[float]]:
     """
-    Calculate
+    Calculate similarity scores between images and captions using CLIP model.
+    
+    Args:
+        results: Dictionary mapping domains to lists of generated captions
+    
+    Returns:
+        Dictionary mapping domains to lists of similarity scores
     """
     similarity_scores = {}
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -52,6 +58,8 @@ def calculate_similarity_score(results: Dict[str, Dict[str]]) -> Dict[str, List[
         avg_score = sum(similarity_scores[domain])/len(similarity_scores[domain])
         logging.info(f"{domain}: {avg_score:.4f}")
     logging.info("=" * 50)
+    
+    return similarity_scores
     
 def evaluate_multi_domain_captioning(
     model_name: str,
