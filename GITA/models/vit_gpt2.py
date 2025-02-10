@@ -40,13 +40,7 @@ class ViTGPT2Model(BaseModel):
         
 class VITGPT2Processor(BaseProcessor): 
     def __init__(self, config: str): 
-        config = self.load_config(config)
-        self.model_id = config["model"]["model_id"]
-        if config["model"]["device"] == "cuda" and torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
-        self.batch_size = config["batch_size"]
+        super().__init__(config)
         
         self.processor_config = config["processor"]
         self.load_processor()

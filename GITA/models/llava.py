@@ -61,12 +61,7 @@ class LlavaProcessor(BaseProcessor):
             model_id: HuggingFace model identifier
             config: Path to configuration file
         """
-        config = self.load_config(config)
-        self.model_id = config["model"]["model_id"]
-        if config["model"]["device"] == "cuda" and torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
+        super().__init__(config)
         self.batch_size = config["batch_size"]
         
         self.processor_config = config["processor"]
