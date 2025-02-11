@@ -121,7 +121,7 @@ if __name__ == "__main__":
     
     results = evaluate_multi_domain_captioning(
         model_name=args.model, 
-        config=args.config, 
+        config_path=args.config, 
         output_path=args.save, 
         threshold=args.threshold
     )
