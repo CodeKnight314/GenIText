@@ -1,11 +1,31 @@
 model:
   model_id: "Salesforce/blip2-opt-2.7b"
-  use_fp16: true
-  load_in_8bit: true
+  device: "auto"
+  dtype: "float16"
+  low_cpu_mem: true
+  quantize:
+    enabled: true
+    quant_type: "8bit"
   
-generation:
-  max_new_tokens: 20
-  temperature: 0.3
-  num_beams: 3
+generation: 
+  max_new_tokens: 100
+  min_new_tokens: 20
+  num_beams: 5
   do_sample: true
+  temperature: 0.7
+  top_k: 50
+  top_p: 0.9
   repetition_penalty: 1.2
+  length_penalty: 1.2
+  no_repeat_ngram_size: 3
+  early_stopping: true
+  return_dict_in_generate: true
+  output_scores: false
+
+processor:
+  model_id: "Salesforce/blip2-opt-2.7b"
+  device: "auto"
+  return_tensors: "pt"
+  padding: "max_length"
+  default_prompt: "Describe the image's artistic and image style in 4 words or less."
+  
