@@ -5,22 +5,33 @@ from typing import List, Union, Dict, Optional
 from PIL import Image
 
 class LlavaModel(BaseModel):
-    def __init__(self, 
-                 config: Optional[str]):
-        """Initialize LLaVA model with configuration.
-        
-        Args:
-            model_id: HuggingFace model identifier
-            config: Path to configuration file
-        """
+    def __init__(self, config: Optional[str]):
         super().__init__(config)
         self.load_model()
     
     def load_model(self) -> None:
-        """Load and configure the LLaVA model."""
-        self.model = LlavaForConditionalGeneration.from_pretrained(
-            self.model_id
-        ).to(self.device)
+        """
+        Loads Model based on the configuration when initializing the class.
+        """
+        if self.model_config["quantize"]["enabled"]:
+            from transformers import BitsAndBytesConfig
+            quant_config = BitsAndBytesConfig(
+                load_in_8bit=(self.model_config["quantize"]["quant_type"] == "8bit"),
+                load_in_4bit=(self.model_config["quantize"]["quant_type"] == "4bit"),
+                llm_int8_threshold=6.0,
+                llm_int8_skip_modules=["lm_head"]
+            )
+            
+            self.model = LlavaForConditionalGeneration.from_pretrained(
+                self.model_id, 
+                quantization_config=quant_config,
+                low_cpu_mem_usage=self.model_config["low_cpu_mem"]
+            ).to(self.device)
+        else:
+            self.model = LlavaForConditionalGeneration.from_pretrained(
+                self.model_id, 
+                low_cpu_mem_usage=self.model_config["low_cpu_mem"]
+            ).to(self.device)
         
         self.model.config.eos_token_id = self.model.config.pad_token_id = 2
         if hasattr(self.model, 'generation_config'):
@@ -28,108 +39,111 @@ class LlavaModel(BaseModel):
             self.model.generation_config.eos_token_id = 2
     
     def caption_images(self, inputs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        """Generate captions for preprocessed image inputs.
+        """
+        Captions a given image based on the inputs provided.
         
         Args:
-            inputs: Dictionary containing model inputs
-            
+            inputs (Dict[str, torch.Tensor]): Inputs to the model.
+
         Returns:
-            Tensor containing generated token sequences
+            torch.Tensor: Generated Caption.
         """
         with torch.no_grad(): 
             outputs = self.model.generate(
                 **inputs, 
-                max_new_tokens=self.gen_config.get("max_new_tokens", 100),
-                num_beams=self.gen_config.get("num_beams", 5),
-                do_sample=self.gen_config.get("do_sample", True),
-                temperature=self.gen_config.get("temperature", 0.7),
-                top_p=self.gen_config.get("top_p", 0.95),
-                repetition_penalty=self.gen_config.get("repetition_penalty", 1.5),
-                min_new_tokens=self.gen_config.get("min_new_tokens", 1),
-                early_stopping=self.gen_config.get("early_stopping", True),
-                length_penalty=self.gen_config.get("length_penalty", 1.0),
-                no_repeat_ngram_size=self.gen_config.get("no_repeat_ngram_size", 3),
+                max_new_tokens = self.gen_config["max_new_tokens"],
+                min_new_tokens = self.gen_config["min_new_tokens"],
+                num_beams = self.gen_config["num_beams"],
+                do_sample = self.gen_config["do_sample"],
+                temperature = self.gen_config["temperature"],
+                top_k = self.gen_config["top_k"],
+                top_p = self.gen_config["top_p"],
+                repetition_penalty = self.gen_config["repetition_penalty"],
+                length_penalty = self.gen_config["length_penalty"],
+                no_repeat_ngram_size = self.gen_config["no_repeat_ngram_size"],
+                early_stopping = self.gen_config["early_stopping"],
+                return_dict_in_generate = self.gen_config["return_dict_in_generate"],
+                output_scores = self.gen_config["output_scores"],
             )
         return outputs
 
 class LlavaProcessor(BaseProcessor):
-    def __init__(self, 
-                 config: Optional[str] = None):
-        """Initialize LLaVA processor with configuration.
-        
-        Args:
-            model_id: HuggingFace model identifier
-            config: Path to configuration file
-        """
+    def __init__(self, config: Optional[str] = None):
         super().__init__(config)
-        self.batch_size = config["batch_size"]
-        
-        self.processor_config = config["processor"]
         self.load_processor()
-    
+        self.default_prompt = self.processor_config["default_prompt"]
+
     def load_processor(self):
+        """
+        Loads Processor based on the configuration when initializing the class.
+        """
         self.processor = LlavaNextProcessor.from_pretrained(
             self.model_id
         )
-        
-        self.processor.image_processor.size = {
-            "height": self.processor_config.get("image_size", {}).get("height", 336),
-            "width": self.processor_config.get("image_size", {}).get("width", 336)
-        }
-        self.processor.tokenizer.padding_side = self.processor_config.get("padding_side", "left")
 
-        
-    def preprocess(self, images: Union[List[Image.Image], Image.Image]) -> torch.Tensor:
-        """Preprocess images and text for model input.
+    def preprocess(self, images: Union[List[Image.Image], Image.Image], prompts : Union[List[str], str] = None) -> torch.Tensor:
+        """
+        Preprocesses the inputs for the model.
         
         Args:
-            images: Single image or list of images
-            prompt: Optional custom prompt
+            images (Union[List[Image.Image], Image.Image]): Images to be processed.
+            prompts (Union[List[str], str]): Prompts to be processed.
             
         Returns:
-            Dictionary containing preprocessed inputs
+            torch.Tensor: Processed Inputs.
         """
-        if prompt is None: 
-            prompt = self.processor_config.get("default_prompt", "Describe this image.")
-            
         if isinstance(images, Image.Image):
             images = [images]
-            
-        conversation = [
-            {
+
+        if isinstance(prompts, list):
+            processed_prompts = []
+            for prompt in prompts:
+                conversation = [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image"}
+                    ],
+                }]
+                processed_prompts.append(self.processor.apply_chat_template(conversation, add_generation_prompt=True))
+            prompts = processed_prompts
+        else:
+            if prompts is None:
+                prompts = self.default_prompt
+                
+            conversation = [{
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": prompt},
+                    {"type": "text", "text": prompts},
                     {"type": "image"}
                 ],
-            }
-        ]
-        
-        prompt = self.processor.apply_chat_template(conversation, add_generation_prompt=True)
-        if len(images) > 1: 
-            prompt = [prompt] * len(images)
-        
+            }]
+            prompts = self.processor.apply_chat_template(conversation, add_generation_prompt=True)
+
+        if not isinstance(prompts, list):
+            prompts = [prompts] * len(images)
+        elif len(prompts) == 1 and len(images) > 1:
+            prompts = prompts * len(images)
+        elif len(prompts) != len(images):
+            raise ValueError("The number of prompts must match the number of images or be a single prompt.")
+
         inputs = self.processor(
-            text=prompt, 
+            text=prompts, 
             images=images, 
             return_tensors="pt"
-        ).to(self.device, dtype=torch.float16)
+        ).to(self.device)
         
         return inputs
     
     def postprocess(self, outputs: torch.Tensor) -> Union[str, List[str]]:
-        """Convert model outputs to human-readable captions.
+        """
+        Postprocesses the outputs from the model.
         
         Args:
-            outputs: Model output tensors
-            batch_size: Number of images processed
-            
-        Returns:
-            Single caption string or list of captions
-        """
-        if self.batch_size > 1:
-            captions = self.processor.batch_decode(outputs, skip_special_tokens=True)
-        else: 
-            captions = self.processor.decode(outputs[0], skip_special_tokens=True)
+            outputs (torch.Tensor): Outputs from the model.
         
-        return captions
+        Returns:
+            Union[str, List[str]]: Postprocessed Outputs.
+        """
+        return self.processor.batch_decode(outputs, skip_special_tokens=True)
+        
