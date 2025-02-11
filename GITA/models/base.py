@@ -8,12 +8,14 @@ import os
 class BaseModel(ABC): 
     def __init__(self, config: str):
         config = self.load_config(config)
-        self.model_id = config["model"]["model_id"]
-        if config["model"]["device"] == "cuda" and torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
+
+        if config["model"]["device"] == "auto":
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        else: 
+            self.device = config["model"]["device"]
         
+        self.model_id = config["model"]["model_id"]
+        self.model_config = config["model"]
         self.gen_config = config["generation"]
     
     @abstractmethod
@@ -36,7 +38,7 @@ class BaseModel(ABC):
             "config": self.gen_config
         }
         
-    def load_config(config_path: str):
+    def load_config(self, config_path: str):
         """
         Load configuration from a yaml file.
         
@@ -54,12 +56,15 @@ class BaseModel(ABC):
 class BaseProcessor(ABC): 
     def __init__(self, config: str):
         config = self.load_config(config)
-        self.model_id = config["model"]["model_id"]
-        if config["model"]["device"] == "cuda" and torch.cuda.is_available(): 
-            self.device = "cuda"
+        
+        if config["model"]["device"] == "auto":
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else: 
-            self.device = "cpu"
-    
+            self.device = config["model"]["device"]
+        
+        self.model_id = config["model"]["model_id"]
+        self.processor_config = config["processor"]
+        
     @abstractmethod
     def load_processor(self) -> None:  
         pass
