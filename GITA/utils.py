@@ -1,16 +1,47 @@
 import os
 from tqdm import tqdm
-import yaml
 from typing import Dict, List
 import kagglehub
 from random import sample
+import shutil
+import requests
+import zipfile
 
-def download_dataset():
-    """
-    Download testing dataset from Kaggle.
-    """
-    path = kagglehub.dataset_download("hadiepratamatulili/anime-vs-cartoon-vs-human")
-    return path
+def download_dataset(url: str = None, path: str = "dataset/"):
+    if url is None:
+        url = "https://www.kaggle.com/api/v1/datasets/download/hadiepratamatulili/anime-vs-cartoon-vs-human"
+
+    os.makedirs(path, exist_ok=True)
+    download_path = os.path.join(path, "anime-vs-cartoon-vs-human.zip")
+
+    response = requests.get(url, stream=True)
+    
+    if response.status_code == 200:
+        total_size = int(response.headers.get("content-length", 0))
+        block_size = 1024
+
+        with open(download_path, "wb") as f, tqdm(
+            desc="Downloading",
+            total=total_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as bar:
+            for chunk in response.iter_content(block_size):
+                f.write(chunk)
+                bar.update(len(chunk))
+
+        print(f"[INFO] Successfully downloaded to {download_path}")
+
+        print("[INFO] Extracting files...")
+        with zipfile.ZipFile(download_path, 'r') as zip_ref:
+            zip_ref.extractall(path)
+            print(f"[INFO] Extracted all files to {path}")
+        
+        os.remove(download_path)
+        return os.path.join(path, "Data/")
+    else:
+        print(f"Download failed with status code: {response.status_code}")
 
 def cut_data(dataset_path: str, sample_threshold: int):
     """
@@ -26,7 +57,7 @@ def cut_data(dataset_path: str, sample_threshold: int):
             os.remove(os.path.join(dataset_path, file))
         print(f"[INFO] Removed {len(files) - sample_threshold} files")
 
-def prepare_data(sample_threshold: int = 100):
+def prepare_data(sample_threshold: int = 100, target_dir: str = "dataset/"):
     """
     Prepare the dataset for training.
     
@@ -36,7 +67,8 @@ def prepare_data(sample_threshold: int = 100):
     Returns:
         Tuple[List[str], List[str], List[str]]: List of anime, cartoon, and human images.
     """
-    data_path = download_dataset()
+
+    data_path = download_dataset(path=target_dir)
     print(f"[INFO] Data downloaded to {data_path}")
     
     anime_path = os.path.join(data_path, "anime")
@@ -47,7 +79,7 @@ def prepare_data(sample_threshold: int = 100):
     cut_data(cartoon_path, sample_threshold)
     cut_data(human_path, sample_threshold)
     
-    return os.listdir(anime_path), os.listdir(cartoon_path), os.listdir(human_path)
+    return anime_path, cartoon_path, human_path
             
 def save_images(captions: List[Dict[str, str]], output_path: str = "output/samples/"):
     """
