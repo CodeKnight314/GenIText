@@ -77,7 +77,7 @@ class BaseProcessor(ABC):
     def postprocess(self, outputs: torch.Tensor) -> Union[str, List[str]]:
         pass
     
-    def load_config(config_path: str):
+    def load_config(self, config_path: str):
         """
         Load configuration from a yaml file.
         
