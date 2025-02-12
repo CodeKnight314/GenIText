@@ -13,7 +13,7 @@ This repository is independently developed as a felxible framework to generate h
 ## Installation
 1. Clone the repository:
     ```bash
-    git clone https://github.com/CodeKnight314/Image-Captioning.git
+    git clone [https://github.com/CodeKnight314/Image-Captioning.git](https://github.com/CodeKnight314/GITA.git)
     ```
 
 2. Create and activate a virtual environment (optional but recommended):
