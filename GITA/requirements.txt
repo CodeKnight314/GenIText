@@ -7,3 +7,4 @@ matplotlib
 kagglehub
 pyyaml
 bitsandbytes
+accelerate>=0.26.0
