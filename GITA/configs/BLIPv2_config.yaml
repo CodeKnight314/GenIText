@@ -19,7 +19,7 @@ generation:
   length_penalty: 1.2
   no_repeat_ngram_size: 3
   early_stopping: true
-  return_dict_in_generate: true
+  return_dict_in_generate: false
   output_scores: false
 
 processor:
