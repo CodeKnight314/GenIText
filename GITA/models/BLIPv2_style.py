@@ -22,14 +22,15 @@ class BLIPv2_StyleID(BaseModel):
             self.model = Blip2ForConditionalGeneration.from_pretrained(
                 self.model_id,
                 quantization_config=quant_config, 
-                low_cpu_mem_usage=self.model_config["low_cpu_mem"]
+                low_cpu_mem_usage=self.model_config["low_cpu_mem"],
+                device_map="auto"
             )
 
         else: 
             self.model = Blip2ForConditionalGeneration.from_pretrained(
                 self.model_id, 
                 low_cpu_mem_usage=self.model_config["low_cpu_mem"]
-            )
+            ).to(self.device)
     
     def caption_images(self, inputs: dict): 
         with torch.no_grad(): 

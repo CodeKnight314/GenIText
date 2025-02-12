@@ -25,8 +25,9 @@ class LlavaModel(BaseModel):
             self.model = LlavaForConditionalGeneration.from_pretrained(
                 self.model_id, 
                 quantization_config=quant_config,
-                low_cpu_mem_usage=self.model_config["low_cpu_mem"]
-            ).to(self.device)
+                low_cpu_mem_usage=self.model_config["low_cpu_mem"],
+                device_map="auto"
+            )
         else:
             self.model = LlavaForConditionalGeneration.from_pretrained(
                 self.model_id, 
