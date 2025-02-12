@@ -64,6 +64,9 @@ class BaseProcessor(ABC):
         
         self.model_id = config["model"]["model_id"]
         self.processor_config = config["processor"]
+        self.img_h = self.processor_config["img_h"]
+        self.img_w = self.processor_config["img_w"]
+        self.batch_size = self.processor_config["batch_size"]
         
     @abstractmethod
     def load_processor(self) -> None:  
