@@ -23,7 +23,9 @@ class End2EndCaptionPipeline():
             self.model = self.models[model][0](config)
             self.processor = self.models[model][1](config)
         
-        self.batch_size = 2
+        self.batch_size = self.processor.batch_size
+        self.img_h = self.processor.img_h if hasattr(self.processor, "img_h") else None
+        self.img_w = self.processor.img_w if hasattr(self.processor, "img_w") else None
          
     def generate_captions(self, inputs: Union[List[str], str]) -> List[Dict[str, str]]:
         """
@@ -39,6 +41,8 @@ class End2EndCaptionPipeline():
             inputs = glob(os.path.join(inputs, "*"))
 
         inputs = [Image.open(img) for img in inputs if os.path.isfile(img)]
+        if self.img_h and self.img_w:
+            inputs = [img.resize((self.img_w, self.img_h)) for img in inputs]
         
         caption_results = []
         
