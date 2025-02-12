@@ -23,13 +23,13 @@ class BLIPv2_StyleID(BaseModel):
                 self.model_id,
                 quantization_config=quant_config, 
                 low_cpu_mem_usage=self.model_config["low_cpu_mem"]
-            ).to(self.device)
+            )
 
         else: 
             self.model = Blip2ForConditionalGeneration.from_pretrained(
                 self.model_id, 
                 low_cpu_mem_usage=self.model_config["low_cpu_mem"]
-            ).to(self.device)
+            )
     
     def caption_images(self, inputs: dict): 
         with torch.no_grad(): 
@@ -80,5 +80,7 @@ class BLIPv2_Processor(BaseProcessor):
         return self.processor(images=images, text=prompts, return_tensors="pt").to(self.device)
     
     def postprocess(self, outputs: List[torch.Tensor]): 
+        if isinstance(outputs, dict) and "sequences" in outputs:
+            outputs = outputs["sequences"]
         captions = self.processor.batch_decode(outputs, skip_special_tokens=True)
         return captions
