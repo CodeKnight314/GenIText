@@ -1,11 +1,10 @@
 import os
 from tqdm import tqdm
 from typing import Dict, List
-import kagglehub
 from random import sample
-import shutil
 import requests
 import zipfile
+from PIL import Image
 
 def download_dataset(url: str = None, path: str = "dataset/"):
     if url is None:
@@ -14,34 +13,41 @@ def download_dataset(url: str = None, path: str = "dataset/"):
     os.makedirs(path, exist_ok=True)
     download_path = os.path.join(path, "anime-vs-cartoon-vs-human.zip")
 
-    response = requests.get(url, stream=True)
-    
-    if response.status_code == 200:
-        total_size = int(response.headers.get("content-length", 0))
-        block_size = 1024
+    if not os.path.exists(download_path):
+        if os.path.exists(os.path.join(path, "Data")) and len(os.listdir(os.path.join(path, "Data", "anime"))) > 0 and len(os.listdir(os.path.join(path, "Data", "human"))) > 0 and len(os.listdir(os.path.join(path, "Data", "cartoon"))) > 0:
+            print(f"[INFO] {os.path.join(path, 'Data')} already exists")
+            return os.path.join(path, "Data/")
 
-        with open(download_path, "wb") as f, tqdm(
-            desc="Downloading",
-            total=total_size,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as bar:
-            for chunk in response.iter_content(block_size):
-                f.write(chunk)
-                bar.update(len(chunk))
-
-        print(f"[INFO] Successfully downloaded to {download_path}")
-
-        print("[INFO] Extracting files...")
-        with zipfile.ZipFile(download_path, 'r') as zip_ref:
-            zip_ref.extractall(path)
-            print(f"[INFO] Extracted all files to {path}")
+        response = requests.get(url, stream=True)
         
-        os.remove(download_path)
-        return os.path.join(path, "Data/")
-    else:
-        print(f"Download failed with status code: {response.status_code}")
+        if response.status_code == 200:
+            total_size = int(response.headers.get("content-length", 0))
+            block_size = 1024
+
+            with open(download_path, "wb") as f, tqdm(
+                desc="Downloading",
+                total=total_size,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as bar:
+                for chunk in response.iter_content(block_size):
+                    f.write(chunk)
+                    bar.update(len(chunk))
+
+            print(f"[INFO] Successfully downloaded to {download_path}")
+        else:
+            print(f"Download failed with status code: {response.status_code}")
+    else: 
+        print(f"[INFO] {download_path} already exists")
+        
+    print("[INFO] Extracting files...")
+    with zipfile.ZipFile(download_path, 'r') as zip_ref:
+        zip_ref.extractall(path)
+        print(f"[INFO] Extracted all files to {path}")
+    
+    os.remove(download_path)
+    return os.path.join(path, "Data/")
 
 def cut_data(dataset_path: str, sample_threshold: int):
     """
@@ -79,7 +85,7 @@ def prepare_data(sample_threshold: int = 100, target_dir: str = "dataset/"):
     cut_data(cartoon_path, sample_threshold)
     cut_data(human_path, sample_threshold)
     
-    return anime_path, cartoon_path, human_path
+    return {"anime": anime_path, "cartoon": cartoon_path, "human": human_path}
             
 def save_images(captions: List[Dict[str, str]], output_path: str = "output/samples/"):
     """
@@ -90,10 +96,12 @@ def save_images(captions: List[Dict[str, str]], output_path: str = "output/sampl
         output_path (str): Path to save the images.
     """
     os.makedirs(output_path, exist_ok=True)
+    os.makedirs(os.path.join(output_path, "captions"), exist_ok=True)
+    os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
     for i, img in enumerate(tqdm(captions, total=len(captions), desc=f"Saving images to {output_path}")):
-        with open(os.path.join(output_path, "captions", f"result_{i}.txt"), 'w') as f:
+        with open(os.path.join(output_path, "captions", f"caption_{i}.txt"), 'w') as f:
             f.write(img["caption"])
-        img.save(os.path.join(output_path, "images", f"result_{i}.png"))
+        img["image"].save(os.path.join(output_path, "images", f"image_{i}.png"))
     print("[INFO] Finished saving images")
     
 def save_captions(captions: List[Dict[str, str]], output_path: str = "output"):
