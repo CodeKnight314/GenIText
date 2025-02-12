@@ -25,7 +25,7 @@ def download_dataset(url: str = None, path: str = "dataset/"):
             block_size = 1024
 
             with open(download_path, "wb") as f, tqdm(
-                desc="Downloading",
+                desc="Downloading Dataset from kaggle URL",
                 total=total_size,
                 unit="B",
                 unit_scale=True,
@@ -42,8 +42,14 @@ def download_dataset(url: str = None, path: str = "dataset/"):
         print(f"[INFO] {download_path} already exists")
         
     print("[INFO] Extracting files...")
-    with zipfile.ZipFile(download_path, 'r') as zip_ref:
-        zip_ref.extractall(path)
+    with zipfile.ZipFile(download_path, 'r') as zip_ref, tqdm(
+        dec="Extracting files",
+        total=len(zip_ref.namelist()),
+        unit="files",
+    ) as bar:
+        for file in zip_ref.namelist():
+            zip_ref.extract(file)
+            bar.update(1)
         print(f"[INFO] Extracted all files to {path}")
     
     os.remove(download_path)
