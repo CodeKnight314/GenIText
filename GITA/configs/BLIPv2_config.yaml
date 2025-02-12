@@ -28,4 +28,7 @@ processor:
   return_tensors: "pt"
   padding: "max_length"
   default_prompt: "Describe the image's artistic and image style in 4 words or less."
+  img_h: 224
+  img_w: 224
+  batch_size: 4
   

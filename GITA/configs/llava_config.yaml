@@ -28,3 +28,6 @@ processor:
   return_tensors: "pt"
   padding: "max_length"
   default_prompt: "Create a positive prompt for the image."
+  img_h: 224
+  img_w: 224
+  batch_size: 4
