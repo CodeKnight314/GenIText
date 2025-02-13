@@ -1,6 +1,6 @@
 from .base import BaseModel, BaseProcessor
 import torch 
-from transformers import LlavaNextProcessor, LlavaForConditionalGeneration
+from transformers import AutoProcessor, LlavaForConditionalGeneration
 from typing import List, Union, Dict, Optional
 from PIL import Image
 
@@ -78,7 +78,7 @@ class LlavaProcessor(BaseProcessor):
         """
         Loads Processor based on the configuration when initializing the class.
         """
-        self.processor = LlavaNextProcessor.from_pretrained(
+        self.processor = AutoProcessor.from_pretrained(
             self.model_id
         )
 
@@ -131,6 +131,7 @@ class LlavaProcessor(BaseProcessor):
         inputs = self.processor(
             text=prompts, 
             images=images, 
+            padding=True,
             return_tensors="pt"
         ).to(self.device)
         

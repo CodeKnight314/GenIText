@@ -48,7 +48,7 @@ def download_dataset(url: str = None, path: str = "dataset/"):
         unit="files",
     ) as bar:
         for file in zip_ref.namelist():
-            zip_ref.extract(file)
+            zip_ref.extract(file, path)
             bar.update(1)
         print(f"[INFO] Extracted all files to {path}")
     

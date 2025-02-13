@@ -55,7 +55,7 @@ class End2EndCaptionPipeline():
         
         for img_batch_idx in tqdm(range(0, len(inputs), self.batch_size)):
             img_path_batch = inputs[img_batch_idx:img_batch_idx + self.batch_size]
-            img_batch = [Image.open(img) for img in img_path_batch]
+            img_batch = [Image.open(img).convert("RGB") for img in img_path_batch]
             if self.img_h and self.img_w:
                 img_batch = [img.resize((self.img_w, self.img_h)) for img in img_batch]
             preprocessed_imgs = self.processor.preprocess(img_batch)
@@ -75,7 +75,7 @@ class End2EndCaptionPipeline():
         torch.cuda.reset_peak_memory_stats()
         initial_mem = torch.cuda.memory_allocated()
         
-        img_batch = [Image.fromarray(np.random.randint(0, 255, (self.img_h, self.img_w, 3), dtype=np.uint8)) for _ in range(self.batch_size)]
+        img_batch = [Image.fromarray(np.random.randint(0, 255, (self.img_h, self.img_w, 3), dtype=np.uint8)).convert("RGB") for _ in range(self.batch_size)]
         
         try: 
             img_batch = self.processor.preprocess(img_batch)
