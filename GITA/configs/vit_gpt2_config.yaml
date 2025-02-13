@@ -3,6 +3,7 @@ model:
   device: "cuda"
   dtype: "float16"
   low_cpu_mem: true
+  auto_batch: true
   quantize:
     enabled: true
     quant_type: "8bit"

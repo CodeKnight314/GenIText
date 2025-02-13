@@ -3,6 +3,7 @@ model:
   device: "auto"
   dtype: "float16"
   low_cpu_mem: true
+  auto_batch: true
   quantize: 
     enabled: true
     quant_type: "8bit"
@@ -28,6 +29,6 @@ processor:
   return_tensors: "pt"
   padding: "max_length"
   default_prompt: "Create a positive prompt for the image."
-  img_h: 224
-  img_w: 224
+  img_h: 336
+  img_w: 336
   batch_size: 4
