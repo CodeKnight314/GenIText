@@ -71,10 +71,11 @@ def cut_data(dataset_path: str, sample_threshold: int):
 
 def prepare_data(sample_threshold: int = 100, target_dir: str = "dataset/"):
     """
-    Prepare the dataset for training.
+    Prepare the test dataset for training.
     
     Args:
         sample_threshold (int): Number of samples to keep.
+        target_dir (str): Path to save the dataset.
         
     Returns:
         Tuple[List[str], List[str], List[str]]: List of anime, cartoon, and human images.
