@@ -1,5 +1,5 @@
 model: 
-  model_id: "llava-hf/llava-v1.6-mistral-7b-hf"
+  model_id: "llava-hf/llava-1.5-7b-hf"
   device: "auto"
   dtype: "float16"
   low_cpu_mem: true
@@ -24,7 +24,7 @@ generation:
   output_scores: false
 
 processor: 
-  model_id: "llava-hf/llava-v1.6-mistral-7b-hf"
+  model_id: "llava-hf/llava-1.5-7b-hf"
   device: "auto"
   return_tensors: "pt"
   padding: "max_length"
