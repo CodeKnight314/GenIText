@@ -9,11 +9,11 @@ model:
     quant_type: "8bit"
   
 generation: 
-  max_new_tokens: 10
-  min_new_tokens: 1
-  num_beams: 7
+  max_new_tokens: 100
+  min_new_tokens: 20
+  num_beams: 5
   do_sample: true
-  temperature: 0.6
+  temperature: 0.7
   top_k: 50
   top_p: 0.9
   repetition_penalty: 1.2
@@ -28,7 +28,7 @@ processor:
   device: "auto"
   return_tensors: "pt"
   padding: "max_length"
-  default_prompt: "Describe the image's artistic and image style in 4 words or less."
+  default_prompt: "Create a positive prompt for the image."
   img_h: 224
   img_w: 224
   batch_size: 4

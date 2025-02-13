@@ -83,5 +83,6 @@ class BLIPv2_Processor(BaseProcessor):
     def postprocess(self, outputs: List[torch.Tensor]): 
         if isinstance(outputs, dict) and "sequences" in outputs:
             outputs = outputs["sequences"]
-        captions = self.processor.batch_decode(outputs, skip_special_tokens=True)
+        captions = self.processor.batch_decode(outputs, skip_special_tokens=True)            
+        captions = [caption.replace(self.default_prompt, "") for caption in captions]
         return captions
