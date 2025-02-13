@@ -8,3 +8,4 @@ GITA/models/__pycache__/llava.cpython-312.pyc
 GITA/models/__pycache__/vit_gpt2.cpython-312.pyc
 GITA/pipelines/__pycache__/__init__.cpython-312.pyc
 GITA/pipelines/__pycache__/caption.cpython-312.pyc
+.DS_Store
