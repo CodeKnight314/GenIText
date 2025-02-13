@@ -57,7 +57,7 @@ class End2EndCaptionPipeline():
             img_path_batch = inputs[img_batch_idx:img_batch_idx + self.batch_size]
             img_batch = [Image.open(img) for img in img_path_batch]
             if self.img_h and self.img_w:
-                img_batch = [img.resize((self.img_w, self.img_h)) for img in inputs]
+                img_batch = [img.resize((self.img_w, self.img_h)) for img in img_batch]
             preprocessed_imgs = self.processor.preprocess(img_batch)
             outputs = self.model.caption_images(preprocessed_imgs)
             captions = self.processor.postprocess(outputs)
@@ -75,7 +75,7 @@ class End2EndCaptionPipeline():
         torch.cuda.reset_peak_memory_stats()
         initial_mem = torch.cuda.memory_allocated()
         
-        img_batch = [Image.fromarray(np.array([self.img_h, self.img_w, 3])) for _ in range(self.batch_size)]
+        img_batch = [Image.fromarray(np.random.randint(0, 255, (self.img_h, self.img_w, 3), dtype=np.uint8)) for _ in range(self.batch_size)]
         
         try: 
             img_batch = self.processor.preprocess(img_batch)

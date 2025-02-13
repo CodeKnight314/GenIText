@@ -125,5 +125,3 @@ if __name__ == "__main__":
         output_path=args.save, 
         threshold=args.threshold
     )
-    
-    scores = calculate_similarity_score(results)

@@ -43,7 +43,7 @@ def download_dataset(url: str = None, path: str = "dataset/"):
         
     print("[INFO] Extracting files...")
     with zipfile.ZipFile(download_path, 'r') as zip_ref, tqdm(
-        dec="Extracting files",
+        desc="Extracting files",
         total=len(zip_ref.namelist()),
         unit="files",
     ) as bar:
@@ -105,10 +105,12 @@ def save_images(captions: List[Dict[str, str]], output_path: str = "output/sampl
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(os.path.join(output_path, "captions"), exist_ok=True)
     os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
-    for i, img in enumerate(tqdm(captions, total=len(captions), desc=f"Saving images to {output_path}")):
+    for i, pair in enumerate(tqdm(captions, total=len(captions), desc=f"Saving images to {output_path}")):
         with open(os.path.join(output_path, "captions", f"caption_{i}.txt"), 'w') as f:
-            f.write(img["caption"])
-        img["image"].save(os.path.join(output_path, "images", f"image_{i}.png"))
+            f.write(pair["caption"])
+        
+        img = Image.open(pair["image"]).convert("RGB")
+        img.save(os.path.join(output_path, "images", f"image_{i}.png"))
     print("[INFO] Finished saving images")
     
 def save_captions(captions: List[Dict[str, str]], output_path: str = "output"):
