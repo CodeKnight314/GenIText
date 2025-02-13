@@ -9,11 +9,11 @@ model:
     quant_type: "8bit"
   
 generation: 
-  max_new_tokens: 100
-  min_new_tokens: 20
-  num_beams: 5
+  max_new_tokens: 10
+  min_new_tokens: 1
+  num_beams: 7
   do_sample: true
-  temperature: 0.7
+  temperature: 0.6
   top_k: 50
   top_p: 0.9
   repetition_penalty: 1.2
