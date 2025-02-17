@@ -17,11 +17,13 @@ class End2EndCaptionPipeline():
         self.models = {
             "llava": [LlavaModel, LlavaProcessor],
             "vit_gpt2": [ViTGPT2Model, VITGPT2Processor], 
-            "blipv2_style": [BLIPv2_StyleID, BLIPv2_Processor]
+            "blipv2": [BLIPv2_StyleID, BLIPv2_Processor]
         }
         if model not in self.models:
             raise ValueError(f"[ERROR] Model '{model}' not found.")
         else: 
+            if config is None: 
+                config = f"../configs/{model}_config.yaml"
             self.model = self.models[model][0](config)
             self.processor = self.models[model][1](config)
         
