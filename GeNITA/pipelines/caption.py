@@ -17,7 +17,7 @@ class End2EndCaptionPipeline():
         self.models = {
             "llava": [LlavaModel, LlavaProcessor],
             "vit_gpt2": [ViTGPT2Model, VITGPT2Processor], 
-            "blipv2": [BLIPv2_StyleID, BLIPv2_Processor]
+            "blipv2": [BLIPv2Model, BLIPv2_Processor]
         }
         if model not in self.models:
             raise ValueError(f"[ERROR] Model '{model}' not found.")

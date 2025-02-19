@@ -2,7 +2,6 @@ import torch
 from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
 from typing import List, Union
-import argparse
 from tqdm import tqdm
 import numpy as np
 
