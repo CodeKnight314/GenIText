@@ -4,7 +4,7 @@ import torch
 from typing import List, Union
 from .base import BaseModel, BaseProcessor
 
-class BLIPv2_StyleID(BaseModel): 
+class BLIPv2Model(BaseModel): 
     def __init__(self, config: str): 
         super().__init__(config)
         self.load_model()
