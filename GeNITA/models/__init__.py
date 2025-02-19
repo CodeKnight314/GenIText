@@ -1,7 +1,8 @@
 from .base import BaseModel, BaseProcessor
 from .llava import LlavaModel, LlavaProcessor
 from .vit_gpt2 import ViTGPT2Model, VITGPT2Processor
-from .BLIPv2_style import BLIPv2_StyleID, BLIPv2_Processor
+from .BLIPv2 import BLIPv2Model, BLIPv2_Processor
+from .clip_reranking import CLIPReranker
 
 __all__ = [
     "BaseModel",
@@ -10,6 +11,7 @@ __all__ = [
     "LlavaProcessor", 
     "ViTGPT2Model", 
     "VITGPT2Processor", 
-    "BLIPv2_StyleID", 
-    "BLIPv2_Processor"
+    "BLIPv2Model", 
+    "BLIPv2_Processor",
+    "CLIPReranker"
 ]
