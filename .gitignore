@@ -21,3 +21,7 @@ GeNITA/models/__pycache__/base.cpython-312.pyc
 GeNITA/models/__pycache__/llava.cpython-312.pyc
 GeNITA/models/__pycache__/vit_gpt2.cpython-312.pyc
 GeNITA/__pycache__/utils.cpython-312.pyc
+GeNITA/prompt_refiner/__pycache__/__init__.cpython-312.pyc
+GeNITA/prompt_refiner/__pycache__/GA_Refiner.cpython-312.pyc
+GeNITA/prompt_refiner/__pycache__/GA_utils.cpython-312.pyc
+GeNITA/prompt_refiner/__pycache__/prompts.cpython-312.pyc
