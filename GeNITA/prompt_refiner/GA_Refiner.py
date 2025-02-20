@@ -5,6 +5,9 @@ from typing import List, Union, Dict, Tuple, Optional
 from .prompts import *
 from ..models import *
 import re
+from glob import glob 
+import os 
+from tqdm import tqdm 
 
 THINK_PATTERN = re.compile(r'<think>(.*?)</think>', re.DOTALL)
 
@@ -81,7 +84,7 @@ def generate_prompt_population(prompt: str, n: int) -> List[str]:
     
     return variants
 
-def choose_model(model_id: str):
+def choose_model(model_id: str, config: str = None):
     models = {
             "llava": [LlavaModel, LlavaProcessor],
             "vit_gpt2": [ViTGPT2Model, VITGPT2Processor], 
@@ -91,16 +94,14 @@ def choose_model(model_id: str):
     if model_id not in models:
         raise ValueError(f"[Error] Chosen Model ID {model_id} is not available within list of models")
     else: 
-        return models[model_id]
+        return models[model_id][0](config), models[model_id][1](config)
 
-def caption_images(images: List[Image.Image], prompts: Union[List[str], str], model_id: str): 
-    model, processor = choose_model(model_id)
-    reranker = CLIPReranker()
+def caption_images(images: List[Image.Image], prompts: Union[List[str], str], model, processor, reranker): 
     batch = {}
     
     total = 0.0
-    
-    for prompt in prompts: 
+    pbar = tqdm(prompts, desc="Scoring Prompts")
+    for prompt in pbar: 
         scores = []
         for img in images: 
             inputs = processor.preprocess(img, prompt)
@@ -110,12 +111,16 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
             scores.append(reranker.score(img, caption))
             
         batch[prompt] = sum(scores)/len(scores)  
-        total += sum(scores)/len(scores)     
-    
+        total += sum(scores)/len(scores)
+        pbar.set_postfix({'total_score': total})
+
     for key in batch.keys(): 
         batch[key] = batch[key]/total
     
-    gen_avg = total / (len(prompt) * len(images))
+    gen_avg = total / (len(prompts) * len(images))
+    
+    del outputs
+    del inputs
     
     return batch, gen_avg
 
@@ -140,6 +145,35 @@ def mutate_crossover(parent_1: str, parent_2: str, context: Union[str, None] = N
     content = llm_query(crossover, system_context).strip()
     mutate = llm_query(mutate + "\n" + content, system_context).strip()
     
+    mutate = mutate[mutate.index("<prompt>") + len("<prompt>"):mutate.index("</prompt>")]
+    
     return mutate
        
-            
+def prompt_refinement(prompt: str, 
+                      image_dir: str, 
+                      population_size: int, 
+                      generations: int, 
+                      model_id: str, 
+                      config: str, 
+                      context: Union[str, None] = None):
+    
+    model, processor = choose_model(model_id, config)
+    reranker = CLIPReranker()
+    img_list = glob(os.path.join(image_dir, "*"))
+    img_list = [Image.open(img) for img in img_list]
+    
+    population = generate_prompt_population(prompt, population_size)
+    pbar = tqdm(range(generations), desc="Generations")
+    for gen in pbar:
+        scores, gen_avg = caption_images(img_list, population, model, processor, reranker)
+        pbar.set_postfix({'best_score': max(scores.values()), 'avg_score': gen_avg})
+        scores = {k: v for k, v in sorted(scores.items(), key=lambda item: item[1], reverse=True)}
+        scores = dict(list(scores.items())[:population_size])
+        population = list(scores.keys())
+        
+        parent_1, parent_2 = choose_parents(scores)
+        mutant = mutate_crossover(parent_1, parent_2, context)
+        mutated_population = generate_prompt_population(mutant, population_size)
+        population.extend(mutated_population)
+        
+    return list(scores.keys())[0], scores[list(scores.keys())[0]]   
