@@ -13,18 +13,28 @@ class CLIPReranker:
         self.model = self.model.to(self.device)
         self.model.eval()
 
-    def _load_image(self, image: Union[Image.Image, str]) -> Image.Image:
+    def _load_image(self, image: Union[Image.Image, str, List[Image.Image]]) -> Image.Image:
         """Helper method to load and validate images."""
         if isinstance(image, str):
             try:
                 image = Image.open(image).convert("RGB")
             except Exception as e:
                 raise ValueError(f"Failed to load image: {e}")
-        if not isinstance(image, Image.Image):
-            raise ValueError("Invalid image input")
+        elif isinstance(image, list):
+            for i, img in enumerate(image):
+                if isinstance(img, str):
+                    try:
+                        image[i] = Image.open(img).convert("RGB")
+                    except Exception as e:
+                        raise ValueError(f"Failed to load image {i}: {e}")
+                elif not isinstance(img, Image.Image):
+                    raise ValueError(f"Invalid image type at index {i}")
+        elif not isinstance(image, Image.Image):
+            raise ValueError("Invalid image type")
+        
         return image
 
-    def score(self, image: Union[Image.Image, str], captions: Union[List[str], str]) -> np.ndarray:
+    def score(self, image: Union[Image.Image, str, List[Image.Image]], captions: Union[List[str], str]) -> np.ndarray:
         """
         Calculate CLIP similarity scores between an image and caption(s).
         
@@ -44,6 +54,7 @@ class CLIPReranker:
                 text=captions,
                 images=image,
                 return_tensors="pt",
+                truncation=True,
                 padding=True
             ).to(self.device)
             
