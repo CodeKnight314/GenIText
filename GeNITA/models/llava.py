@@ -95,6 +95,10 @@ class LlavaProcessor(BaseProcessor):
         """
         if isinstance(images, Image.Image):
             images = [images]
+        
+        for i, img in enumerate(images):
+            if img.size != (self.img_w, self.img_h):
+                images[i] = img.resize((self.img_w, self.img_h))
 
         if isinstance(prompts, list):
             processed_prompts = []

@@ -93,6 +93,10 @@ class VITGPT2Processor(BaseProcessor):
 
         if isinstance(images, Image.Image): 
             images = [images]
+        
+        for i, img in enumerate(images):
+            if img.size != (self.img_w, self.img_h):
+                images[i] = img.resize((self.img_w, self.img_h))
             
         pixel_values = self.feature_extractor(images=images, return_tensors="pt")
         return pixel_values.to(self.device)
