@@ -1,4 +1,4 @@
-from GeNITA import End2EndCaptionPipeline, prepare_data, save_images, save_captions
+from GenITA import End2EndCaptionPipeline, prepare_data, save_images, save_captions
 import os
 from typing import Dict, List
 import logging
