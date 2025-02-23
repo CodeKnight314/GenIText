@@ -101,7 +101,7 @@ def generate_prompt_population(prompt: str, n: int) -> List[str]:
     
     input_content = f"""
     Generate {n} variations of the following instruction while keep the semantic meaning. Each prompt 
-    must be encompassed by <prompt> </prompt>. Write only the prompts, separated by new lines
+    must be always be encompassed by <prompt> </prompt>. Write only the prompts, separated by new lines
     Input: ${prompt}
     Output:
     """
