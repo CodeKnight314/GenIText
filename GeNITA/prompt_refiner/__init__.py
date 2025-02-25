@@ -1,5 +1,5 @@
-from .GA_refiner import prompt_refiner
+from .GA_refiner import refiner
 
 __all__ = [
-    "prompt_refiner",
+    "refiner",
 ]
