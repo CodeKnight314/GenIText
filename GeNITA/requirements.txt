@@ -10,3 +10,4 @@ accelerate>=0.26.0
 numpy
 transformers
 typing-extensions
+ollama
