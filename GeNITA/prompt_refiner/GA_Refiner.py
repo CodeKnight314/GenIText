@@ -4,15 +4,22 @@ import random
 from typing import List, Union, Dict, Tuple, Optional
 from .prompts import *
 from ..models import *
-from ..PA_track import PerformanceTracker
+from ..PA_track import PerformanceTracker, TimingStats
 import re
 from glob import glob 
 import os 
 from tqdm import tqdm
+from dataclasses import dataclass
 
 THINK_PATTERN = re.compile(r'<think>(.*?)</think>', re.DOTALL)
 
 tracker = PerformanceTracker()
+
+@dataclass
+class RefinerResults:
+    prompt: str
+    output: str
+    scores: float
 
 @tracker.track_function
 def extract_think_content(content: str) -> Tuple[str, Optional[str]]:
@@ -31,6 +38,10 @@ def extract_think_content(content: str) -> Tuple[str, Optional[str]]:
         clean_text = content[match.end():].strip()
         return clean_text, think_text
     return content.strip(), None
+
+def postprocess_llava(output: str): 
+    output = output[output.find("ASSISTANT:") + len("ASSISTANT:"):]
+    return output
 
 def save_prompts(prompt: Union[str, List[str]], filename: str):
     if isinstance(prompt, str):
@@ -154,29 +165,32 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
                 inputs = processor.preprocess(img, prompt)
                 outputs = model.caption_images(inputs)
                 caption = processor.postprocess(outputs)
-        
+                
             with tracker.track_subroutine("Scoring"):
-                scores.append(reranker.score(img, caption))
+                scores.append(reranker.score(img, postprocess_llava(caption[0])))
         
-        batch[prompt] = sum(scores)/len(scores)  
+        batch[prompt] = RefinerResults(prompt, postprocess_llava(caption[0]), sum(scores)/len(scores))
         total += sum(scores)/len(scores)
         pbar.set_postfix({'total_score': total})
 
-    for key in batch.keys(): 
-        batch[key] = batch[key]/total
-    
-    del outputs
-    del inputs
+    for key in batch.keys():
+        batch[key].scores = batch[key].scores / total
     
     return batch
 
 def choose_parents(batch: Dict):
-    batch_sum = sum(list(batch.values()))
-    if(batch_sum != 1.0):
+    scores = [result.scores for result in batch.values()]
+    batch_sum = sum(scores)
+    
+    if batch_sum != 1.0:
         for key in batch.keys():
-            batch[key] = batch[key] / batch_sum
+            batch[key].scores = batch[key].scores / batch_sum
             
-    return random.choices(list(batch.keys()), weights=list(batch.values()), k=2)
+    return random.choices(
+        list(batch.keys()), 
+        weights=[result.scores for result in batch.values()], 
+        k=2
+    )
 
 @tracker.track_function
 def mutate_crossover(parent_1: str, parent_2: str, context: Union[str, None] = None):
@@ -201,7 +215,7 @@ def mutate_crossover(parent_1: str, parent_2: str, context: Union[str, None] = N
     
     return mutate   
 
-def prompt_refiner(prompt: str, 
+def refiner(prompt: str, 
                    image_dir: str, 
                    population_size: int,
                    generations: int, 
@@ -225,16 +239,26 @@ def prompt_refiner(prompt: str,
         
         m_scores = caption_images(img_list, mutated_population, model, processor, reranker)
         population = {**population, **m_scores}
-        avg = sum(list(population.values()))/len(population)
+        avg = sum(item.scores for item in population.values()) / len(population)
+        
+        keys_to_remove = []
         for key in population.keys():
-            if(population[key] < avg) and len(population) > population_size: 
+            if(population[key].scores < avg) and len(population) > population_size: 
+                keys_to_remove.append(key)
+
+        for key in keys_to_remove:
+            if len(population) > population_size:
                 del population[key]
         
         save_prompts(list(population.keys()), f"population_{gen}.txt")     
         os.system('cls' if os.name == 'nt' else 'clear')
         pbar.set_postfix({'avg_score': avg})
         
-    population = {k: v for k, v in sorted(list(population.items()), key=lambda item: item[1], reverse=True)}
+    population = {k: v for k, v in sorted(
+        list(population.items()), 
+        key=lambda item: item[1].scores, 
+        reverse=True
+    )}
         
     return {
         "population": list(population.keys()),
