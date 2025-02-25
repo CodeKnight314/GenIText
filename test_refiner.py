@@ -1,4 +1,4 @@
-from GenITA.prompt_refiner import prompt_refiner
+from GenITA.prompt_refiner import refiner
 import argparse
 
 if __name__ == "__main__": 
@@ -8,11 +8,11 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, help="path/to/config/file")
     args = parser.parse_args()
     
-    prompt = prompt_refiner(
+    prompt = refiner(
         prompt=args.prompt, 
         image_dir=args.image_dir, 
         population_size=5, 
-        generations=5, 
+        generations=1, 
         config=args.config,
         model_id="llava"
     )
