@@ -79,7 +79,8 @@ class LlavaProcessor(BaseProcessor):
         Loads Processor based on the configuration when initializing the class.
         """
         self.processor = AutoProcessor.from_pretrained(
-            self.model_id
+            self.model_id, 
+            use_fast=True
         )
 
     def preprocess(self, images: Union[List[Image.Image], Image.Image], prompts : Union[List[str], str] = None) -> torch.Tensor:
@@ -152,4 +153,5 @@ class LlavaProcessor(BaseProcessor):
             Union[str, List[str]]: Postprocessed Outputs.
         """
         return self.processor.batch_decode(outputs, skip_special_tokens=True)
+        
         
