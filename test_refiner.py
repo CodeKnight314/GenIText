@@ -14,6 +14,7 @@ if __name__ == "__main__":
         population_size=5, 
         generations=1, 
         config=args.config,
-        model_id="llava"
+        model_id="llava", 
+        context="The response should be a single comma-separated list of keywords that describe the image."
     )
     print(prompt)
