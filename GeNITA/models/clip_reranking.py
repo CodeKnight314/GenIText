@@ -61,14 +61,14 @@ class CLIPReranker:
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 
-            if len(captions) == 1:
-                image_embeds = outputs.image_embeds
-                text_embeds = outputs.text_embeds
-                image_embeds = image_embeds / image_embeds.norm(p=2, dim=-1, keepdim=True)
-                text_embeds = text_embeds / text_embeds.norm(p=2, dim=-1, keepdim=True)
-                scores = (image_embeds * text_embeds).sum(dim=-1).cpu().numpy()
-            else:
-                scores = outputs.logits_per_image.softmax(dim=-1).cpu().numpy()
+                image_embeds = outputs.image_embeds / outputs.image_embeds.norm(dim=-1, keepdim=True)
+                text_embeds = outputs.text_embeds / outputs.text_embeds.norm(dim=-1, keepdim=True)
+                
+                similarity = (image_embeds @ text_embeds.T).cpu().numpy()
+                
+                scores = (similarity + 1) / 2
+                if len(captions) == 1:
+                    scores = scores.flatten()
                 
             return scores
             
