@@ -39,8 +39,29 @@ def extract_think_content(content: str) -> Tuple[str, Optional[str]]:
         return clean_text, think_text
     return content.strip(), None
 
-def postprocess_llava(output: str): 
-    output = output[output.find("ASSISTANT:") + len("ASSISTANT:"):]
+def postprocess_llava(output: str) -> str:
+    """
+    Enhanced processing for LLaVA output to ensure complete captions without unwanted line breaks.
+    
+    Args:
+        output: Raw output from the LLaVA model
+        
+    Returns:
+        Cleaned and completed caption as a single coherent paragraph
+    """
+    if not output:
+        return ""
+    
+    if "ASSISTANT:" in output:
+        output = output[output.find("ASSISTANT:") + len("ASSISTANT:"):]
+    
+    output = output.strip()
+    output = ' '.join([line.strip() for line in output.split('\n') if line.strip()])
+    output = ' '.join(output.split())
+    
+    if output and not output[-1] in ('.', '!', '?', ':', ';'):
+        output = output + "."
+    
     return output
 
 def save_prompts(prompt: Union[str, List[str]], filename: str):
@@ -153,11 +174,14 @@ def choose_model(model_id: str, config: str = None):
         return models[model_id][0](config), models[model_id][1](config)
 
 @tracker.track_function
-def caption_images(images: List[Image.Image], prompts: Union[List[str], str], model, processor, reranker): 
+def caption_images(images: List[Image.Image], prompts: Union[List[str], str], model, processor, reranker, temperature: float = 0.5): 
     batch = {}
     
     total = 0.0
     pbar = tqdm(prompts, desc="Scoring Prompts")
+    
+    min_score = float('inf') 
+    max_score = float('-inf')
     for prompt in pbar: 
         scores = []
         for img in images:
@@ -165,16 +189,32 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
                 inputs = processor.preprocess(img, prompt)
                 outputs = model.caption_images(inputs)
                 caption = processor.postprocess(outputs)
+
+            caption = postprocess_llava(caption[0])
                 
             with tracker.track_subroutine("Scoring"):
-                scores.append(reranker.score(img, postprocess_llava(caption[0])))
+                scores.append(reranker.score(img, caption))
+            
+        prompt_score = sum(scores) / temperature
+            
+        batch[prompt] = RefinerResults(prompt, caption, prompt_score)
+        total += prompt_score
         
-        batch[prompt] = RefinerResults(prompt, postprocess_llava(caption[0]), sum(scores)/len(scores))
-        total += sum(scores)/len(scores)
-        pbar.set_postfix({'total_score': total})
+        min_score = min(min_score, prompt_score)
+        max_score = max(max_score, prompt_score)
+        
+        pbar.set_postfix({'Average_score': total / len(batch)})
+    
+    for key in batch.keys():
+        batch[key].scores = (batch[key].scores - min_score) / (max_score - min_score)
+
+    normalized_total = sum(float(batch[key].scores.item()) if hasattr(batch[key].scores, 'item') else float(batch[key].scores) for key in batch.keys())
 
     for key in batch.keys():
-        batch[key].scores = batch[key].scores / total
+        batch[key].scores = batch[key].scores / normalized_total
+        
+    print(f"Min Score: {min_score}, Max Score: {max_score}")
+    print("Distribution: ", [result.scores for result in batch.values()])
     
     return batch
 
@@ -193,27 +233,75 @@ def choose_parents(batch: Dict):
     )
 
 @tracker.track_function
-def mutate_crossover(parent_1: str, parent_2: str, context: Union[str, None] = None):
-    system_context = """
-    Below is an instruction that describes a task, paired with an input that provides further context. 
-    Write a response that appropriately completes the request. 
+@tracker.track_function
+def mutate_crossover(
+    parent_1: str,
+    parent_2: str,
+    output_format: str,
+    context: Union[str, None] = None
+) -> str:
     """
+    Crosses over two prompt instructions (parent_1, parent_2) and mutates them
+    into a single prompt that instructs the user/model to produce output
+    according to a user-specified 'output_format'.
+
+    Parameters:
+    - parent_1: First prompt instruction.
+    - parent_2: Second prompt instruction.
+    - output_format: A free-form string describing the format you want
+      the final output (i.e., how to instruct the LLM to respond).
+      Example: "The response should be a single comma-separated list of keywords."
+      or "Use a fully descriptive sentence with minimal punctuation."
+
+    - context (optional): Extra context or style info you want to pass along.
+
+    Returns:
+    - A single mutated prompt (str), without <prompt>...</prompt> tags, which
+      can be used downstream.
+    """
+
+    system_context = """
+    You will combine (cross over) the two provided instructions into a single new prompt.
+    Then you will mutate that new prompt so that it explicitly directs the user to produce
+    output in the style/format given by 'output_format'.
+    
+    Your final response should ONLY contain the newly mutated prompt wrapped as:
+    <prompt> FINAL_INSTRUCTION </prompt>
+    """
+
     if context:
-        system_context += f"""
-        
-        Generate prompts following this format style:
-        Example: "{context}"
-        """
-    
-    crossover = "Cross over the following prompts and generate a new prompt" + "\n" + parent_1 + "\n" + parent_2 + "\nEach generated prompt must be encompassed by <prompt> </prompt>"
-    mutate = "Mutate the prompt and generate a final prompt bracketed with <prompt> and </prompt>"
-    
-    content = llm_query(crossover, system_context).strip()
-    mutate = llm_query(mutate + "\n" + content, system_context).strip()
-    
-    mutate = mutate[mutate.index("<prompt>") + len("<prompt>"):mutate.index("</prompt>")]
-    
-    return mutate   
+        system_context += f"\nAdditional context to consider: {context}"
+
+    crossover_instruction = f"""
+    Combine these two instructions into a single cohesive prompt:
+    1) {parent_1}
+    2) {parent_2}
+    Preserve the intent of prompt while combining both prompts.
+    """
+
+    mutate_instruction = f"""
+    Now mutate this merged prompt so that it explicitly instructs the user/model
+    to produce the final output according to the following format guidelines:
+    {output_format}
+
+    Wrap only the final mutated prompt in <prompt>...</prompt> and nothing else.
+    """
+
+    merged_result = llm_query(crossover_instruction, system_context).strip()
+
+    final_result = llm_query(
+        f"{mutate_instruction}\n\nMerged Prompt:\n{merged_result}",
+        system_context
+    ).strip()
+
+    if "<prompt>" in final_result and "</prompt>" in final_result:
+        start_idx = final_result.index("<prompt>") + len("<prompt>")
+        end_idx = final_result.index("</prompt>")
+        final_prompt = final_result[start_idx:end_idx].strip()
+    else:
+        final_prompt = final_result
+
+    return final_prompt  
 
 def refiner(prompt: str, 
                    image_dir: str, 
@@ -265,5 +353,3 @@ def refiner(prompt: str,
         "scores": population, 
         "time": [tracker.functional_timings, tracker.subroutine_timings]
     }
-        
-            
