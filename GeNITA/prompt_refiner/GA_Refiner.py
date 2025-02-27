@@ -2,9 +2,9 @@ from ollama import chat
 from PIL import Image
 import random
 from typing import List, Union, Dict, Tuple, Optional
-from .prompts import *
-from ..models import *
-from ..PA_track import PerformanceTracker, TimingStats
+from GenITA.prompt_refiner.prompts import *
+from GenITA.models import *
+from GenITA.PA_track import PerformanceTracker, TimingStats
 import re
 from glob import glob 
 import os 
@@ -232,7 +232,6 @@ def choose_parents(batch: Dict):
         k=2
     )
 
-@tracker.track_function
 @tracker.track_function
 def mutate_crossover(
     parent_1: str,
