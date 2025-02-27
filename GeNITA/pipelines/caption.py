@@ -1,4 +1,3 @@
-from ..models import *
 from typing import List, Dict, Union
 from tqdm import tqdm
 from glob import glob
@@ -6,26 +5,32 @@ import os
 from PIL import Image
 import torch
 import numpy as np
+import importlib.resources
+
+from GenITA.models.llava import LlavaModel, LlavaProcessor
+from GenITA.models.vit_gpt2 import ViTGPT2Model, VITGPT2Processor
+from GenITA.models.BLIPv2 import BLIPv2Model, BLIPv2_Processor
 
 class End2EndCaptionPipeline():
+    models = {
+        "llava": [LlavaModel, LlavaProcessor],
+        "vit_gpt2": [ViTGPT2Model, VITGPT2Processor], 
+        "blipv2": [BLIPv2Model, BLIPv2_Processor]
+    }
+    
     def __init__(self, model: str, config: str):
         """Initialize end-to-end captioning pipeline.
         
         Args:
             model: Model to use for captioning
         """
-        self.models = {
-            "llava": [LlavaModel, LlavaProcessor],
-            "vit_gpt2": [ViTGPT2Model, VITGPT2Processor], 
-            "blipv2": [BLIPv2Model, BLIPv2_Processor]
-        }
-        if model not in self.models:
+        if model not in End2EndCaptionPipeline.models:
             raise ValueError(f"[ERROR] Model '{model}' not found.")
         else: 
             if config is None: 
-                config = f"../configs/{model}_config.yaml"
-            self.model = self.models[model][0](config)
-            self.processor = self.models[model][1](config)
+                config = self._get_default_config_path(model)
+            self.model = End2EndCaptionPipeline.models[model][0](config)
+            self.processor = End2EndCaptionPipeline.models[model][1](config)
         
         self.batch_size = self.processor.batch_size if hasattr(self.processor, "batch_size") else 1
         self.img_h = self.processor.img_h if hasattr(self.processor, "img_h") else None
@@ -37,6 +42,24 @@ class End2EndCaptionPipeline():
                 self.batch_size = max(self.batch_size, batch_result["recommended_max_batch_size"])
             else:
                 raise MemoryError(f"[WARNING] Auto-batch failed. Model is unable to handle images at size ({self.img_h}, {self.img_w}). Model uses ")
+            
+    def _get_default_config_path(self, model_name: str) -> str:
+        """Get the path to the default config file for a model.
+        
+        This works whether the package is installed via pip or in development mode.
+        
+        Args:
+            model_name: Name of the model
+            
+        Returns:
+            Path to default config file
+        """
+        try:
+            with importlib.resources.path('GenITA.configs', f'{model_name}_config.yaml') as path:
+                return str(path)
+        except (ImportError, ModuleNotFoundError):
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            return os.path.join(base_dir, 'configs', f'{model_name}_config.yaml')
                 
     def generate_captions(self, inputs: Union[List[str], str]) -> List[Dict[str, str]]:
         """
