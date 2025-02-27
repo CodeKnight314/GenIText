@@ -1,4 +1,4 @@
-from .base import BaseModel, BaseProcessor
+from GenITA.models.base import BaseModel, BaseProcessor
 import torch 
 from transformers import AutoProcessor, LlavaForConditionalGeneration
 from typing import List, Union, Dict, Optional
