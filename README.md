@@ -1,7 +1,7 @@
 # GenITA: Generative Image-Text Automated package
 
 <p align="center">
-  <img src="resources/gif/demo.gif" alt="Demonstration video of GenITA tool">
+  <img src="resources/demo.gif" alt="Demonstration video of GenITA tool">
 </p>
 
 ## Overview
