@@ -95,5 +95,9 @@ class BaseProcessor(ABC):
                 return yaml.safe_load(f)
         except Exception as e:
             raise Exception(f"[ERROR] Error loading config file {config_path}: {e}")
+        
+    @abstractmethod
+    def clean_string(self, text: str):
+        pass
     
         

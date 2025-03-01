@@ -90,3 +90,6 @@ class BLIPv2_Processor(BaseProcessor):
         captions = self.processor.batch_decode(outputs, skip_special_tokens=True)            
         captions = [caption.replace(self.default_prompt, "") for caption in captions]
         return captions
+
+    def clean_string(self, text: str):
+        return text

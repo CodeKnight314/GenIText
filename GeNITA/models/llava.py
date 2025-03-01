@@ -153,5 +153,17 @@ class LlavaProcessor(BaseProcessor):
             Union[str, List[str]]: Postprocessed Outputs.
         """
         return self.processor.batch_decode(outputs, skip_special_tokens=True)
+    
+    def clean_string(self, text: str):
+        if "ASSISTANT:" in text:
+            text = text[text.find("ASSISTANT:") + len("ASSISTANT:"):].strip()
         
+        text = text.strip()
+        text = ' '.join(line.strip() for line in text.split("\n"))
+        text = ' '.join(text.split())
+        
+        if text and not text[-1] in ["?", ".", "!"]:
+            text += "."
+        
+        return text
         

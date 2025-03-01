@@ -105,3 +105,6 @@ class VITGPT2Processor(BaseProcessor):
         preds = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
         preds = [pred.strip() for pred in preds]
         return preds
+    
+    def clean_string(self, text: str):
+        return text
