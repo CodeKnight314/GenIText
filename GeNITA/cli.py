@@ -1,12 +1,56 @@
 import click
 import os
 import shlex
-import readline 
 import glob
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit import PromptSession 
+from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
+from prompt_toolkit.document import Document
 
 from GenITA.pipelines import End2EndCaptionPipeline
 from GenITA.prompt_refiner import refiner
 from GenITA.utils import save_images, save_captions
+
+class CommandAuotSuggest(AutoSuggest):
+    def __init__(self, commands):
+        self.commands = commands
+    
+    def get_suggestion(self, buffer, document):
+        text = document.text_before_cursor
+        for cmd in self.commands:
+            if cmd.startswith(text) and cmd != text:
+                return Suggestion(cmd[len(text):])
+        return None
+
+class PathAutoSuggest(AutoSuggest):
+    def __init__(self):
+        self.dir = os.getcwd()
+        self.dir_list = os.listdir(self.dir)
+        
+    def get_suggestion(self, buffer, document):
+        text = document.text_before_cursor
+        for file in self.dir_list:
+            if file.startswith(text):
+                return Suggestion(file[len(text):])
+        return None
+
+class InterfaceAutoSuggest(AutoSuggest):
+    def __init__(self, commands):
+        self.command_suggestor = CommandAuotSuggest(commands)
+        self.path_suggestor = PathAutoSuggest()
+    
+    def get_suggestion(self, buffer, document):
+        tokens = document.text_before_cursor.split()
+        
+        if not tokens:
+            return None
+        
+        if len(tokens) == 1:
+            return self.command_suggestor.get_suggestion(buffer, document)
+        else:
+            last_token = tokens[-1]
+            dummy_doc = Document(text=last_token, cursor_position=len(last_token))
+            return self.path_suggestor.get_suggestion(buffer, dummy_doc)
 
 def title_screen(): 
     os.system("clear" if os.name == "posix" else "cls")
@@ -36,16 +80,6 @@ def show_help():
     click.echo("/help - Show this help menu")
     click.echo("/clear - Clear the screen")
     click.echo("/exit - Exit GENITA")
-    
-def path_completer(text, state):
-    """Tab completion for file paths"""
-    return (glob.glob(text + '*') + [None])[state]
-    
-def setup_readline():
-    """Set up readline with history and path completion"""
-    readline.set_completer_delims(' \t\n;')
-    readline.set_completer(path_completer)
-    readline.parse_and_bind("tab: complete")
 
 @cli.command()
 def models():
@@ -132,17 +166,35 @@ def refine(prompt: str, image_dir: str, context: str, model: str = "llava", conf
 def start_interactive_shell(): 
     os.system('clear' if os.name == 'posix' else 'cls')
     title_screen()
-    setup_readline()
+    
+    bindings = KeyBindings()
+    @bindings.add("tab")
+    def accept_auto_suggestion(event):
+        """
+        When Tab is pressed, check if there's an auto-suggestion available.
+        If yes, insert the suggestion text into the buffer.
+        Otherwise, you can trigger the default completion behavior.
+        """
+        buff = event.current_buffer
+        if buff.suggestion:
+            buff.insert_text(buff.suggestion.text)
+        else:
+            event.app.current_buffer.start_completion(select_first=False)
     
     command_map = {
         '/caption': caption,
         '/refine': refine,
         '/models': models,
+        '/help': show_help,
+        '/ls': None,
+        '/clear': None,
+        '/exit': None
     }
     
+    session = PromptSession(auto_suggest=InterfaceAutoSuggest(list(command_map.keys())),key_bindings=bindings)
     while True: 
         try: 
-            command = input(click.style(f"\n~/GenITA> ", fg="red", bold=True)).strip()
+            command = session.prompt(f"\n~/GenITA> ")
             
             if command == "/help": 
                 show_help()
