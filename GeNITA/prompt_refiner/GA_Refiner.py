@@ -10,6 +10,7 @@ from glob import glob
 import os 
 from tqdm import tqdm
 from dataclasses import dataclass
+import importlib.resources
 
 THINK_PATTERN = re.compile(r'<think>(.*?)</think>', re.DOTALL)
 
@@ -20,6 +21,7 @@ class RefinerResults:
     prompt: str
     output: str
     scores: float
+    raw_score: float
 
 @tracker.track_function
 def extract_think_content(content: str) -> Tuple[str, Optional[str]]:
@@ -197,7 +199,7 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
             
         prompt_score = sum(scores) / temperature
             
-        batch[prompt] = RefinerResults(prompt, caption, prompt_score)
+        batch[prompt] = RefinerResults(prompt, caption, prompt_score, prompt_score)
         total += prompt_score
         
         min_score = min(min_score, prompt_score)
@@ -212,9 +214,6 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
 
     for key in batch.keys():
         batch[key].scores = batch[key].scores / normalized_total
-        
-    print(f"Min Score: {min_score}, Max Score: {max_score}")
-    print("Distribution: ", [result.scores for result in batch.values()])
     
     return batch
 
@@ -302,45 +301,81 @@ def mutate_crossover(
 
     return final_prompt  
 
+def get_default_config(model_id: str): 
+    try: 
+        with importlib.resources.path('GenITA.configs', f'{model_id}_config.yaml') as path:
+            return str(path)
+    except (ImportError, ModuleNotFoundError):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(base_dir, 'configs', f'{model_id}_config.yaml')
+
 def refiner(prompt: str, 
-                   image_dir: str, 
-                   population_size: int,
-                   generations: int, 
-                   model_id: str, 
-                   config: str, 
-                   context: Union[str, None] = None):
+           image_dir: Union[str, List[str]],
+           population_size: int,
+           generations: int, 
+           model_id: str, 
+           config: str, 
+           context: Union[str, None] = None):
+
     
+    if config is None:
+        config = get_default_config(model_id)
+        
     model, processor = choose_model(model_id, config)
     reranker = CLIPReranker()
-    img_list = glob(os.path.join(image_dir, "*"))
-    img_list = [Image.open(img) for img in img_list]
+
+    print("Check initial check")
+    if isinstance(image_dir, str):
+        img_list = glob(os.path.join(image_dir, "*"))
+    else:
+        img_list = image_dir
+    print("Pass initial check")
+    valid_img_list = []
+    for img_path in img_list:
+        if img_path is not None and os.path.isfile(img_path):
+            valid_img_list.append(img_path)
+        else:
+            print("Skipping invalid path:", img_path)
+    img_list = valid_img_list
+    img_list = [Image.open(img_path) for img_path in valid_img_list]
     img_list = [img.resize((processor.img_h, processor.img_w)) for img in img_list]
     
-    os.system('cls' if os.name == 'nt' else 'clear')
     population = caption_images(img_list, generate_prompt_population(prompt, population_size), model, processor, reranker)
-    pbar = tqdm(range(generations), desc="Generations")
-    for gen in pbar: 
-        p1, p2 = choose_parents(population)
-        mutant = mutate_crossover(p1, p2, context)
-        mutated_population = generate_prompt_population(mutant, population_size)
-        
-        m_scores = caption_images(img_list, mutated_population, model, processor, reranker)
-        population = {**population, **m_scores}
-        avg = sum(item.scores for item in population.values()) / len(population)
-        
-        keys_to_remove = []
-        for key in population.keys():
-            if(population[key].scores < avg) and len(population) > population_size: 
-                keys_to_remove.append(key)
+    
+    try:
+        pbar = tqdm(range(generations), desc="Generations")
+        for gen in pbar: 
+            p1, p2 = choose_parents(population)
+            mutant = mutate_crossover(p1, p2, context)
+            mutated_population = generate_prompt_population(mutant, population_size)
+            
+            m_scores = caption_images(img_list, mutated_population, model, processor, reranker)
+            population = {**population, **m_scores}
+            avg = sum(item.raw_score for item in population.values()) / len(population)
+            
+            keys_to_remove = []
+            for key in population.keys():
+                if(population[key].raw_score < avg) and len(population) > population_size: 
+                    keys_to_remove.append(key)
 
-        for key in keys_to_remove:
-            if len(population) > population_size:
-                del population[key]
-        
-        save_prompts(list(population.keys()), f"population_{gen}.txt")     
-        os.system('cls' if os.name == 'nt' else 'clear')
-        pbar.set_postfix({'avg_score': avg})
-        
+            for key in keys_to_remove:
+                if len(population) > population_size:
+                    del population[key]
+                    
+            pop_total = sum(item.score for item in population.values())
+            for key in population.keys():
+                population[key].scores = population[key].scores / pop_total
+            
+            save_prompts(list(population.keys()), f"population_{gen}.txt")     
+            pbar.set_postfix({'avg_score': avg})
+    
+    except KeyboardInterrupt:
+        return {
+            "population": list(population.keys()),
+            "scores": population, 
+            "time": [tracker.functional_timings, tracker.subroutine_timings]
+        }
+            
     population = {k: v for k, v in sorted(
         list(population.items()), 
         key=lambda item: item[1].scores, 
