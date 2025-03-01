@@ -22,22 +22,31 @@ class CommandAuotSuggest(AutoSuggest):
                 return Suggestion(cmd[len(text):])
         return None
 
-class PathAutoSuggest(AutoSuggest):
+class PathAndOptionsAutoSuggest(AutoSuggest):
     def __init__(self):
         self.dir = os.getcwd()
         self.dir_list = os.listdir(self.dir)
+        self.options = {
+            "/caption": ["--model", "--output", "-m", "-o"],
+            "/refine": ["--model", "--pop", "--gen", "-m", "-p", "-g"],
+        }
         
-    def get_suggestion(self, buffer, document):
+    def get_suggestion(self, command, buffer, document):
         text = document.text_before_cursor
         for file in self.dir_list:
             if file.startswith(text):
                 return Suggestion(file[len(text):])
+        
+        if command in self.options:
+            for option in self.options[command]:
+                if option.startswith(text):
+                    return Suggestion(option[len(text):])
         return None
 
 class InterfaceAutoSuggest(AutoSuggest):
     def __init__(self, commands):
         self.command_suggestor = CommandAuotSuggest(commands)
-        self.path_suggestor = PathAutoSuggest()
+        self.path_suggestor = PathAndOptionsAutoSuggest()
     
     def get_suggestion(self, buffer, document):
         tokens = document.text_before_cursor.split()
@@ -50,16 +59,16 @@ class InterfaceAutoSuggest(AutoSuggest):
         else:
             last_token = tokens[-1]
             dummy_doc = Document(text=last_token, cursor_position=len(last_token))
-            return self.path_suggestor.get_suggestion(buffer, dummy_doc)
+            return self.path_suggestor.get_suggestion(tokens[0], buffer, dummy_doc)
 
 def title_screen(): 
     os.system("clear" if os.name == "posix" else "cls")
     click.echo(click.style("\n ██████╗ ███████╗███╗   ██╗██╗████████╗ █████╗ ", fg="red", bold=True))
-    click.echo(click.style("██╔════╝ ██╔════╝████╗  ██║██║╚══██╔══╝██╔══██╗", fg="red"))
-    click.echo(click.style("██║  ███╗█████╗  ██╔██╗ ██║██║   ██║   ███████║", fg="red"))
-    click.echo(click.style("██║   ██║██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║", fg="red"))
+    click.echo(click.style("██╔════╝ ██╔════╝████╗  ██║██║╚══██╔══╝██╔══██╗", fg="red", bold=True))
+    click.echo(click.style("██║  ███╗█████╗  ██╔██╗ ██║██║   ██║   ███████║", fg="red", bold=True))
+    click.echo(click.style("██║   ██║██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║", fg="red", bold=True))
     click.echo(click.style("╚██████╔╝███████╗██║ ╚████║██║   ██║   ██║  ██║", fg="red", bold=True))
-    click.echo(click.style(" ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝", fg="red"))
+    click.echo(click.style(" ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝", fg="red", bold=True))
     
     click.echo("\nWelcome to GENITA! This package is designed to generate captions for a list of images using an End2End pipeline.")
     click.echo("Type '/help' to see the available commands.")
@@ -74,7 +83,7 @@ def cli(ctx):
 def show_help(): 
     click.echo("\nAvailable commands:")
     click.echo("/caption <image_path/image_folder> --model <model_name> --output <output_path>")
-    click.echo("/refine <prompt> <image_path/image_folder> <context> --model <model_name> --config <config> --output <output_path>")
+    click.echo("/refine <prompt> <image_path/image_folder> <context> --model <model_name> --pop <population_size> --gen <generations>")
     click.echo("/ls - List files in the current directory")
     click.echo("/models - Show available models")
     click.echo("/help - Show this help menu")
@@ -93,7 +102,7 @@ def models():
         
 @cli.command() 
 @click.argument("image_path", type=click.Path(exists=True))
-@click.option("--model", "-m", default="vit-gpt2", help="Model name to use for captioning.")
+@click.option("--model", "-m", default="vit_gpt2", help="Model name to use for captioning.")
 @click.option("--output", "-o", default="output/", help="Output directory.")        
 def caption(image_path: str, model: str, output: str):
     """
@@ -122,8 +131,9 @@ def caption(image_path: str, model: str, output: str):
 @click.argument("image_dir", type=click.Path(exists=True))
 @click.argument("context")
 @click.option("--model", "-m", default="llava", help="Model to use for refinement.")
-@click.option("--config", "-c", help="Configuration file.")
-def refine(prompt: str, image_dir: str, context: str, model: str = "llava", config: str = None):
+@click.option("--pop", "-p", default=5, help="Population size for refinement.")
+@click.option("--gen", "-g", default=5, help="Number of generations for refinement.")
+def refine(prompt: str, image_dir: str, context: str, model: str = "llava", pop: int = 5, gen: int = 5):
     """
     Refine a prompt to generate a better caption.
     """
@@ -140,20 +150,20 @@ def refine(prompt: str, image_dir: str, context: str, model: str = "llava", conf
     
     click.echo(f"[INFO] Refining prompt for {len(image_paths)} images using {model} model")
     for i, path in enumerate(image_paths):
-            if path is None:
-                click.echo(f"[WARNING] Path {i} is None!")
-            elif not os.path.exists(path):
-                click.echo(f"[WARNING] Path {i} does not exist: {path}")
+        if path is None:
+            click.echo(f"[WARNING] Path {i} is None!")
+        elif not os.path.exists(path):
+            click.echo(f"[WARNING] Path {i} does not exist: {path}")
         
 
-    click.echo(f"[INFO] Model: {model}, Config: {config}")
+    click.echo(f"[INFO] Model: {model}, Config: Default, Population: {pop}, Generations: {gen}")
     
     refined_prompt = refiner(
         prompt=prompt, 
         image_dir=image_paths, 
-        population_size=5, 
-        generations=5, 
-        config=config,
+        population_size=pop, 
+        generations=gen, 
+        config=None,
         model_id=model, 
         context=context
     )
@@ -210,7 +220,6 @@ def start_interactive_shell():
                 click.echo(f"Current directory: {current_dir}")
                 for file in os.listdir(current_dir):
                     click.echo(f"- {file}")
-    
             elif command.startswith(tuple(command_map.keys())):
                 parts = shlex.split(command)
                 cmd = command_map.get(parts[0])
