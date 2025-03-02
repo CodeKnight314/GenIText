@@ -1,7 +1,6 @@
 import click
 import os
 import shlex
-import glob
 import traceback
 import warnings
 from prompt_toolkit.key_binding import KeyBindings
@@ -67,20 +66,20 @@ class InterfaceAutoSuggest(AutoSuggest):
 
 def title_screen(): 
     os.system("clear" if os.name == "posix" else "cls")
-    click.echo(click.style("\n ██████╗ ███████╗███╗   ██╗██╗████████╗ █████╗ ", fg="red", bold=True))
-    click.echo(click.style("██╔════╝ ██╔════╝████╗  ██║██║╚══██╔══╝██╔══██╗", fg="red", bold=True))
-    click.echo(click.style("██║  ███╗█████╗  ██╔██╗ ██║██║   ██║   ███████║", fg="red", bold=True))
-    click.echo(click.style("██║   ██║██╔══╝  ██║╚██╗██║██║   ██║   ██╔══██║", fg="red", bold=True))
-    click.echo(click.style("╚██████╔╝███████╗██║ ╚████║██║   ██║   ██║  ██║", fg="red", bold=True))
-    click.echo(click.style(" ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚═╝  ╚═╝", fg="red", bold=True))
+    click.echo(click.style("\n ██████╗ ███████╗███╗   ██╗██╗████████╗███████╗██╗  ██╗████████╗", fg="red", bold=True))
+    click.echo(click.style("██╔════╝ ██╔════╝████╗  ██║██║╚══██╔══╝██╔════╝╚██╗██╔╝╚══██╔══╝", fg="red", bold=True))
+    click.echo(click.style("██║  ███╗█████╗  ██╔██╗ ██║██║   ██║   █████╗   ╚███╔╝    ██║   ", fg="red", bold=True))
+    click.echo(click.style("██║   ██║██╔══╝  ██║╚██╗██║██║   ██║   ██╔══╝   ██╔██╗    ██║   ", fg="red", bold=True))
+    click.echo(click.style("╚██████╔╝███████╗██║ ╚████║██║   ██║   ███████╗██╔╝ ██╗   ██║   ", fg="red", bold=True))
+    click.echo(click.style(" ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝   ╚═╝   ", fg="red", bold=True))
     
-    click.echo("\nWelcome to GENITA! This package is designed to generate captions for a list of images using an End2End pipeline.")
+    click.echo("\nWelcome to GENITEXT! This package is designed to generate captions for a list of images using an End2End pipeline.")
     click.echo("Type '/help' to see the available commands.")
 
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx): 
-    """GenITA: General Image-to-Text Automated package"""
+    """GenIText: General Image-to-Text Automated package"""
     if ctx.invoked_subcommand is None: 
         start_interactive_shell()
 
@@ -92,7 +91,7 @@ def show_help():
     click.echo("/models - Show available models")
     click.echo("/help - Show this help menu")
     click.echo("/clear - Clear the screen")
-    click.echo("/exit - Exit GENITA")
+    click.echo("/exit - Exit GenIText")
 
 @cli.command()
 def models():
@@ -208,12 +207,12 @@ def start_interactive_shell():
     session = PromptSession(auto_suggest=InterfaceAutoSuggest(list(command_map.keys())),key_bindings=bindings)
     while True: 
         try: 
-            command = session.prompt(f"\n~/GenITA> ")
+            command = session.prompt(f"\n~/GenIText> ")
             
             if command == "/help": 
                 show_help()
             elif command == "/exit": 
-                click.echo(click.style("\n[INFO] Exiting GENITA", fg="red"))
+                click.echo(click.style("\n[INFO] Exiting GenIText", fg="red"))
                 break
             elif command == "/clear":
                 os.system('clear' if os.name == 'posix' else 'cls')
@@ -242,7 +241,7 @@ def start_interactive_shell():
             else:
                 click.echo(click.style("[ERROR] Invalid command. Type '/help' to see the available commands.", fg="red"))
         except KeyboardInterrupt:
-            click.echo(click.style("\n[INFO] Exiting GENITA", fg="red"))
+            click.echo(click.style("\n[INFO] Exiting GenIText", fg="red"))
             break
     
 if __name__ == "__main__":
