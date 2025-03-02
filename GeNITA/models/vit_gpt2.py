@@ -7,6 +7,7 @@ from PIL import Image
 class ViTGPT2Model(BaseModel):
     def __init__(self, config: str): 
         super().__init__(config)
+        self.load_model()
         
     def load_model(self):
         """
@@ -25,7 +26,6 @@ class ViTGPT2Model(BaseModel):
                 self.model_id, 
                 quantization_config=quant_config,
                 low_cpu_mem_usage=self.model_config["low_cpu_mem"],
-                device_map="auto"
             )
         else:
             self.model = VisionEncoderDecoderModel.from_pretrained(
@@ -79,7 +79,8 @@ class VITGPT2Processor(BaseProcessor):
         )
         
         self.tokenizer = AutoTokenizer.from_pretrained(
-            self.model_id
+            self.model_id, 
+            
         )
         
     def preprocess(self, images: Union[List[Image.Image], Image.Image], prompts:Union[List[str], str] = None): 
@@ -98,7 +99,7 @@ class VITGPT2Processor(BaseProcessor):
             if img.size != (self.img_w, self.img_h):
                 images[i] = img.resize((self.img_w, self.img_h))
             
-        pixel_values = self.feature_extractor(images=images, return_tensors="pt")
+        pixel_values = self.feature_extractor(images=images, return_tensors="pt")["pixel_values"]
         return pixel_values.to(self.device)
     
     def postprocess(self, outputs: torch.Tensor):
