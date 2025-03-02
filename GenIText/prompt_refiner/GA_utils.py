@@ -1,7 +1,7 @@
 from typing import List, Tuple, Union, Optional
 import re
 from ollama import chat
-from GenITA.models import LlavaModel, ViTGPT2Model, BLIPv2Model, LlavaProcessor, VITGPT2Processor, BLIPv2_Processor
+from GenIText.models import LlavaModel, ViTGPT2Model, BLIPv2Model, LlavaProcessor, VITGPT2Processor, BLIPv2_Processor
 import importlib.resources
 import os
 

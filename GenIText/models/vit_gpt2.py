@@ -1,6 +1,6 @@
 from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
 import torch 
-from GenITA.models.base import BaseModel, BaseProcessor
+from GenIText.models.base import BaseModel, BaseProcessor
 from typing import List, Union
 from PIL import Image
 

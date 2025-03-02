@@ -9,9 +9,9 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
 from prompt_toolkit.document import Document
 
-from GenITA.pipelines import End2EndCaptionPipeline
-from GenITA.prompt_refiner import refiner
-from GenITA.utils import save_images, save_captions
+from GenIText.pipelines import End2EndCaptionPipeline
+from GenIText.prompt_refiner import refiner
+from GenIText.utils import save_images, save_captions
 
 warnings.filterwarnings("ignore")
 

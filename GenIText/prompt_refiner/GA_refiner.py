@@ -2,10 +2,10 @@ from ollama import chat
 from PIL import Image
 import random
 from typing import List, Union, Dict, Tuple
-from GenITA.prompt_refiner.prompts import *
-from GenITA.models import *
-from GenITA.PA_track import PerformanceTracker
-from GenITA.prompt_refiner.GA_utils import *
+from GenIText.prompt_refiner.prompts import *
+from GenIText.models import *
+from GenIText.PA_track import PerformanceTracker
+from GenIText.prompt_refiner.GA_utils import *
 from glob import glob 
 import os 
 from tqdm import tqdm

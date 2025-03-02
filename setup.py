@@ -1,9 +1,16 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="GenITA",
-    version="0.1",
-    packages=find_packages(),
+    name="GenIText",
+    version="0.1.0",
+    author="Richard Tang",
+    author_email="richardgtang@gmail.com",
+    description="A CLI tool for generating high-quality image-text pairs for AI training",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/CodeKnight314/GenIText",
+    packages=find_packages(include=["GenIText", "GenIText.*"]),
+    include_package_data=True,
     install_requires=[
         "torch", 
         "torchvision", 
@@ -17,12 +24,17 @@ setup(
         "transformers", 
         "typing-extensions", 
         "ollama",
-        "click"],
+        "click"
+    ],
     entry_points={
         "console_scripts": [
-            "genita=GenITA.cli:cli"
+            "genitext=GenIText.cli:cli",
         ]
     },
-    author="Richard Tang",
-    author_email="richardgtang@gmail.com"
-)
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
+    python_requires=">=3.8",
+    )

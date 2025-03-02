@@ -7,9 +7,9 @@ import torch
 import numpy as np
 import importlib.resources
 
-from GenITA.models.llava import LlavaModel, LlavaProcessor
-from GenITA.models.vit_gpt2 import ViTGPT2Model, VITGPT2Processor
-from GenITA.models.BLIPv2 import BLIPv2Model, BLIPv2_Processor
+from GenIText.models.llava import LlavaModel, LlavaProcessor
+from GenIText.models.vit_gpt2 import ViTGPT2Model, VITGPT2Processor
+from GenIText.models.BLIPv2 import BLIPv2Model, BLIPv2_Processor
 
 class End2EndCaptionPipeline():
     models = {
@@ -55,7 +55,7 @@ class End2EndCaptionPipeline():
             Path to default config file
         """
         try:
-            with importlib.resources.path('GenITA.configs', f'{model_name}_config.yaml') as path:
+            with importlib.resources.path('GenIText.configs', f'{model_name}_config.yaml') as path:
                 return str(path)
         except (ImportError, ModuleNotFoundError):
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
