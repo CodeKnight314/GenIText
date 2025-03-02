@@ -18,4 +18,17 @@ GenIText will become distributable as a CLI tool once package is ready for testi
   - [Dataset Preparation](#dataset-preparation)
 
 ## Installation
-Soon to be released as python package for direct install on terminal and as python package! Installation instructions coming soon.
+GenIText is available as a Python package and can be installed easily using `pip`. 
+
+To install GenIText, simply run:
+```bash
+pip install genitext
+```
+After installation, you can verify that the CLI tool is accessible by running:
+```bash 
+genitext --help
+```
+To initiate the CLI tool, run: 
+```bash
+genitext
+```
