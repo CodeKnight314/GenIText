@@ -2,6 +2,8 @@ import click
 import os
 import shlex
 import glob
+import traceback
+import warnings
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit import PromptSession 
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
@@ -10,6 +12,8 @@ from prompt_toolkit.document import Document
 from GenITA.pipelines import End2EndCaptionPipeline
 from GenITA.prompt_refiner import refiner
 from GenITA.utils import save_images, save_captions
+
+warnings.filterwarnings("ignore")
 
 class CommandAuotSuggest(AutoSuggest):
     def __init__(self, commands):
@@ -231,6 +235,7 @@ def start_interactive_shell():
                     try: 
                         cmd.main(args=args, standalone_mode=False)
                     except Exception as e:
+                        traceback.print_exc()
                         click.echo(click.style(f"[ERROR] {e}", fg="red"))
                         click.echo(cmd.get_help(click.Context(cmd)))    
                 pass
