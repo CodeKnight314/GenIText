@@ -105,12 +105,24 @@ def save_images(captions: List[Dict[str, str]], output_path: str = "output/sampl
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(os.path.join(output_path, "captions"), exist_ok=True)
     os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
+    
+    caption_ls = [] 
+    image_ls = []
     for i, pair in enumerate(tqdm(captions, total=len(captions), desc=f"Saving images to {output_path}")):
-        with open(os.path.join(output_path, "captions", f"caption_{i}.txt"), 'w') as f:
-            f.write(pair["caption"])
+        caption_ls.append((os.path.join(output_path, "captions", f"caption_{i}.txt"), pair["caption"]))
         
-        img = Image.open(pair["image"]).convert("RGB")
-        img.save(os.path.join(output_path, "images", f"image_{i}.png"))
+        with Image.open(pair["image"]) as img:
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            image_ls.append((os.path.join(output_path, "images", f"image_{i}.png"), img))
+    
+    for path, caption in caption_ls:
+        with open(path, 'w') as f:
+            f.write(caption)
+    
+    for path, img in image_ls:
+        img.save(path, "PNG", optimize=True)
+        
     print("[INFO] Finished saving images")
     
 def save_captions(captions: List[Dict[str, str]], output_path: str = "output"):
