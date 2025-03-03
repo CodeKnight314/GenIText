@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="GenIText",
-    version="0.1.0",
+    name="genitext",
+    version="0.1.5",
     author="Richard Tang",
     author_email="richardgtang@gmail.com",
     description="A CLI tool for generating high-quality image-text pairs for AI training",
@@ -11,6 +11,9 @@ setup(
     url="https://github.com/CodeKnight314/GenIText",
     packages=find_packages(include=["GenIText", "GenIText.*"]),
     include_package_data=True,
+    package_data={
+        "GenIText": ["configs/*.yaml"],
+    },
     install_requires=[
         "torch", 
         "torchvision", 
