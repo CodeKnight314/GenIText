@@ -5,6 +5,7 @@ from random import sample
 import requests
 import zipfile
 from PIL import Image
+import json
 
 def download_dataset(url: str = None, path: str = "dataset/"):
     if url is None:
@@ -94,7 +95,7 @@ def prepare_data(sample_threshold: int = 100, target_dir: str = "dataset/"):
     
     return {"anime": anime_path, "cartoon": cartoon_path, "human": human_path}
             
-def save_images(captions: List[Dict[str, str]], output_path: str = "output/samples/"):
+def save_images_and_txt(captions: List[Dict[str, str]], output_path: str = "output/samples/"):
     """
     Save a list of images to a directory.
     
@@ -108,24 +109,21 @@ def save_images(captions: List[Dict[str, str]], output_path: str = "output/sampl
     
     caption_ls = [] 
     image_ls = []
-    for i, pair in enumerate(tqdm(captions, total=len(captions), desc=f"Saving images to {output_path}")):
+    for i, pair in enumerate(captions):
         caption_ls.append((os.path.join(output_path, "captions", f"caption_{i}.txt"), pair["caption"]))
         
         with Image.open(pair["image"]) as img:
             if img.mode != "RGB":
                 img = img.convert("RGB")
-            image_ls.append((os.path.join(output_path, "images", f"image_{i}.png"), img))
+            image_ls.append((os.path.join(output_path, "images", f"image_{i}.png"), img.copy()))
     
-    for path, caption in caption_ls:
+    for path, caption in tqdm(caption_ls, total=len(caption_ls), desc=f"Saving captions to {output_path}"):
         with open(path, 'w') as f:
             f.write(caption)
-    
-    for path, img in image_ls:
-        img.save(path, "PNG", optimize=True)
         
     print("[INFO] Finished saving images")
     
-def save_captions(captions: List[Dict[str, str]], output_path: str = "output"):
+def save_caption_as_csv(captions: List[Dict[str, str]], output_path: str = "output"):
     """
     Save a list of dictionaries to a csv file.
     
@@ -141,4 +139,33 @@ def save_captions(captions: List[Dict[str, str]], output_path: str = "output"):
         f.write('\n')
         for row in captions: 
             f.write(','.join(str(x) for x in row.values()) + '\n')
-    print(f"Captions saved to {file_name}")
+            
+def save_caption_as_json(captions: List[Dict[str, str]], output_path: str = "output"):
+    """
+    Save a list of dictionaries to a json file.
+    
+    Args:
+        captions (List[Dict[str, str]]): List of dictionaries to save.
+        output_path (str): Path to save the json file.
+    """
+    os.makedirs(output_path, exist_ok=True)
+    file_name = os.path.join(output_path, "captions.json")
+    
+    with open(file_name, 'w') as f: 
+        for row in captions: 
+            f.write(json.dumps(row) + '\n')
+        
+def save_caption_as_jsonl(captions: List[Dict[str, str]], output_path: str = "output"):
+    """
+    Save a list of dictionaries to a jsonl file.
+    
+    Args:
+        captions (List[Dict[str, str]]): List of dictionaries to save.
+        output_path (str): Path to save the jsonl file.
+    """
+    os.makedirs(output_path, exist_ok=True)
+    file_name = os.path.join(output_path, "captions.jsonl")
+    
+    with open(file_name, 'w') as f: 
+        for row in captions: 
+            f.write(json.dumps(row) + '\n')
