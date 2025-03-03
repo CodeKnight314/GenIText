@@ -3,6 +3,8 @@ import os
 import shlex
 import traceback
 import warnings
+from transformers import logging
+
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit import PromptSession 
 from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
@@ -10,9 +12,10 @@ from prompt_toolkit.document import Document
 
 from GenIText.pipelines import End2EndCaptionPipeline
 from GenIText.prompt_refiner import refiner
-from GenIText.utils import save_images, save_captions
+from GenIText.utils import save_caption_as_csv, save_caption_as_json, save_caption_as_jsonl, save_images_and_txt
 
 warnings.filterwarnings("ignore")
+logging.set_verbosity_error()
 
 class CommandAuotSuggest(AutoSuggest):
     def __init__(self, commands):
@@ -105,9 +108,10 @@ def models():
         
 @cli.command() 
 @click.argument("image_path", type=click.Path(exists=True))
-@click.option("--model", "-m", default="vit_gpt2", help="Model name to use for captioning.")
-@click.option("--output", "-o", default="output/", help="Output directory.")        
-def caption(image_path: str, model: str, output: str):
+@click.option("--model", "-m", default="vit_gpt2", type=click.Choice(list(End2EndCaptionPipeline.models.keys())), help="Model name to use for captioning.")
+@click.option("--output", "-o", default="output/", help="Output directory.") 
+@click.option("--format", "-f", default="json", type=click.Choice(['json', 'jsonl', 'csv', 'img&txt'], case_sensitive=False), help="Output format (json/jsonl/csv/img&txt).")       
+def caption(image_path: str, model: str, output: str, format: str):
     """
     Generate captions for a list of images.
     """
@@ -124,8 +128,16 @@ def caption(image_path: str, model: str, output: str):
     captions = pipeline.generate_captions(image_paths)
     os.makedirs(output, exist_ok=True)
     
-    save_images(captions, output)
-    save_captions(captions, output)
+    if format == "json":
+        save_caption_as_json(captions, output)
+    elif format == "jsonl":
+        save_caption_as_jsonl(captions, output)
+    elif format == "csv":
+        save_caption_as_csv(captions, output)
+    elif format == "img&txt":
+        save_images_and_txt(captions, output)
+    else: 
+        raise ValueError(f"[ERROR] Invalid format: {format}")
     
     click.echo(f"[INFO] Captions saved to {output}")
 
@@ -133,7 +145,7 @@ def caption(image_path: str, model: str, output: str):
 @click.argument("prompt")
 @click.argument("image_dir", type=click.Path(exists=True))
 @click.argument("context")
-@click.option("--model", "-m", default="llava", help="Model to use for refinement.")
+@click.option("--model", "-m", default="llava", type=click.Choice(list(End2EndCaptionPipeline.models.keys())), help="Model to use for refinement.")
 @click.option("--pop", "-p", default=5, help="Population size for refinement.")
 @click.option("--gen", "-g", default=5, help="Number of generations for refinement.")
 def refine(prompt: str, image_dir: str, context: str, model: str = "llava", pop: int = 5, gen: int = 5):
