@@ -40,3 +40,7 @@ GenIText.egg-info/PKG-INFO
 GenIText.egg-info/requires.txt
 GenIText.egg-info/SOURCES.txt
 GenIText.egg-info/top_level.txt
+build/lib/GenIText/configs/blipv2_config.yaml
+build/lib/GenIText/configs/llava_config.yaml
+build/lib/GenIText/configs/vit_gpt2_config.yaml
+update.sh
