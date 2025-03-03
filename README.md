@@ -32,3 +32,8 @@ To initiate the CLI tool, run:
 ```bash
 genitext
 ```
+GenIText incorporates LLMs from Ollama to assist with prompt refinement which means ollama has to be available on the device when running `/refine` in the CLI tool. You can download the software for Mac or Windows OS from [here](https://ollama.com/download/). For Linux OS, you can install directly via the following: 
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+After installing, pull the appropriate LLM you want to use in `/refine`. Currently, the default config is set to `deepseek-r1:7b` since it offers strong performance with it's reasoning capabilities while using relatively trivial memory. Options to switch the LLM in config will be made available soon.
