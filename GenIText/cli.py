@@ -4,6 +4,8 @@ import shlex
 import traceback
 import warnings
 from transformers import logging
+import importlib.resources
+import yaml
 
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit import PromptSession 
@@ -12,7 +14,7 @@ from prompt_toolkit.document import Document
 
 from GenIText.pipelines import End2EndCaptionPipeline
 from GenIText.prompt_refiner import refiner
-from GenIText.utils import save_caption_as_csv, save_caption_as_json, save_caption_as_jsonl, save_images_and_txt
+from GenIText.utils import *
 
 warnings.filterwarnings("ignore")
 logging.set_verbosity_error()
@@ -90,6 +92,7 @@ def show_help():
     click.echo("\nAvailable commands:")
     click.echo("/caption <image_path/image_folder> --model <model_name> --output <output_path>")
     click.echo("/refine <prompt> <image_path/image_folder> <context> --model <model_name> --pop <population_size> --gen <generations>")
+    click.echo("/delete <model_name> - Delete a model")
     click.echo("/ls - List files in the current directory")
     click.echo("/models - Show available models")
     click.echo("/help - Show this help menu")
@@ -140,6 +143,21 @@ def caption(image_path: str, model: str, output: str, format: str):
         raise ValueError(f"[ERROR] Invalid format: {format}")
     
     click.echo(f"[INFO] Captions saved to {output}")
+    
+@cli.command()
+@click.argument("model", default="llava", type=click.Choice(list(End2EndCaptionPipeline.models.keys())))
+def delete(model: str):
+    """
+    Delete a model.
+    """
+    with importlib.resources.path('GenIText.configs', f'{model}_config.yaml') as path:
+        with open(path, "r") as f:
+            config = yaml.safe_load(f)
+            model_url = config["model"]["model_id"]
+            if(remove_model_cache(model_url)): 
+                click.echo(f"[INFO] Model {model} deleted.")
+            else:
+                click.echo(f"[ERROR] Model {model} not found.")
 
 @cli.command()
 @click.argument("prompt")
@@ -211,6 +229,7 @@ def start_interactive_shell():
         '/refine': refine,
         '/models': models,
         '/help': show_help,
+        '/delete': delete,
         '/ls': None,
         '/clear': None,
         '/exit': None

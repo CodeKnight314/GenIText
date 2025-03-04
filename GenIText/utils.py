@@ -6,6 +6,7 @@ import requests
 import zipfile
 from PIL import Image
 import json
+import shutil
 
 def download_dataset(url: str = None, path: str = "dataset/"):
     if url is None:
@@ -169,3 +170,31 @@ def save_caption_as_jsonl(captions: List[Dict[str, str]], output_path: str = "ou
     with open(file_name, 'w') as f: 
         for row in captions: 
             f.write(json.dumps(row) + '\n')
+            
+def check_model_exists(model_url: str):
+    """
+    Checks if huggingface model exists in cache.
+    
+    Args:
+        model_url (str): Huggingface model URL.
+    
+    Returns:
+        str: Path to the model cache.
+    """
+    parsed_url = model_url.split("/")
+    path = os.path.join(os.path.expanduser("~/.cache/huggingface/hub"), "models--" + parsed_url[0] + "--" + parsed_url[1])
+    return path
+
+def remove_model_cache(model_url: str):
+    """
+    Removes the mdodel cache from the cache directory if it exists.
+    
+    Args:
+        model_url (str): Huggingface model URL.
+    """
+    path = check_model_exists(model_url)
+    if os.path.exists(path):
+        shutil.rmtree(path)
+        return True
+    else:
+        return False
