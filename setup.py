@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="genitext",
-    version="0.2.1",
+    version="0.3.1",
     author="Richard Tang",
     author_email="richardgtang@gmail.com",
     description="A CLI tool for generating high-quality image-text pairs for AI training",
