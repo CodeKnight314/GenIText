@@ -45,3 +45,4 @@ build/lib/GenIText/configs/llava_config.yaml
 build/lib/GenIText/configs/vit_gpt2_config.yaml
 update.sh
 temp.py
+GenIText/__pycache__/config_editor.cpython-312.pyc
