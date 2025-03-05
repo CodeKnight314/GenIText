@@ -15,6 +15,7 @@ from prompt_toolkit.document import Document
 from GenIText.pipelines import End2EndCaptionPipeline
 from GenIText.prompt_refiner import refiner
 from GenIText.utils import *
+from GenIText.config_editor import ConfigEditor
 
 warnings.filterwarnings("ignore")
 logging.set_verbosity_error()
@@ -95,6 +96,7 @@ def show_help():
     click.echo("/delete <model_name> - Delete a model")
     click.echo("/ls - List files in the current directory")
     click.echo("/models - Show available models")
+    click.echo("/config <model_name> - Modify model configs")
     click.echo("/help - Show this help menu")
     click.echo("/clear - Clear the screen")
     click.echo("/exit - Exit GenIText")
@@ -158,6 +160,16 @@ def delete(model: str):
                 click.echo(f"[INFO] Model {model} deleted.")
             else:
                 click.echo(f"[ERROR] Model {model} not found.")
+                
+@cli.command() 
+@click.argument("model", default="llava", type=click.Choice(list(End2EndCaptionPipeline.models.keys())))         
+def config(model: str):
+    """
+    Modify configs
+    """
+    with importlib.resources.path('GenIText.configs', f'{model}_config.yaml') as path:
+        editor = ConfigEditor(config=path, model=model)
+        editor.run()
 
 @cli.command()
 @click.argument("prompt")
@@ -230,6 +242,7 @@ def start_interactive_shell():
         '/models': models,
         '/help': show_help,
         '/delete': delete,
+        '/config': config,
         '/ls': None,
         '/clear': None,
         '/exit': None
