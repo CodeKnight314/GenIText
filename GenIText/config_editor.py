@@ -1,9 +1,10 @@
 from prompt_toolkit.application import Application
-from prompt_toolkit.layout import Layout, HSplit, VSplit, ConditionalContainer
+from prompt_toolkit.layout import Layout, HSplit, VSplit, ConditionalContainer, Window, FormattedTextControl
 from prompt_toolkit.widgets import Frame, TextArea, RadioList, Box, Label
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.filters import Condition
 from prompt_toolkit.layout.dimension import D
+from prompt_toolkit.formatted_text import FormattedText
 import yaml
 
 class ConfigEditor:
@@ -110,9 +111,25 @@ class ConfigEditor:
         
         options_list = Frame(Box(self.options), title=self.model.upper(), width=35)
         
+        help_section = Frame(Window(content=FormattedTextControl(FormattedText([  
+            ("class:red", " ██████╗ ███████╗███╗   ██╗██╗████████╗███████╗██╗  ██╗████████╗\n"),          
+            ("class:red", "██╔════╝ ██╔════╝████╗  ██║██║╚══██╔══╝██╔════╝╚██╗██╔╝╚══██╔══╝\n"),
+            ("class:red", "██║  ███╗█████╗  ██╔██╗ ██║██║   ██║   █████╗   ╚███╔╝    ██║   \n"),
+            ("class:red", "██║   ██║██╔══╝  ██║╚██╗██║██║   ██║   ██╔══╝   ██╔██╗    ██║   \n"),
+            ("class:red", "╚██████╔╝███████╗██║ ╚████║██║   ██║   ███████╗██╔╝ ██╗   ██║   \n"),
+            ("class:red", " ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝   ╚═╝   \n"),
+            ("class:bold", "---------------------------------------------------------------\n"),
+            ("class:bold", "Ctrl + S to save your changes."), 
+            ("class:bold", "\nCtrl + C to quit the interface"),
+            ("class:bold", "\nEnter to select which module to modify"),
+            ("class:bold", "\nUp and down arrow keys to traverse configs"),
+            ("class:bold", "\nTab to switch between module and config section")]
+        ))))
+        
         layout = Layout(
             HSplit([
                 VSplit([options_list] + module_windows),
+                help_section
             ])
         )
         
