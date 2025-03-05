@@ -44,3 +44,4 @@ build/lib/GenIText/configs/blipv2_config.yaml
 build/lib/GenIText/configs/llava_config.yaml
 build/lib/GenIText/configs/vit_gpt2_config.yaml
 update.sh
+temp.py
