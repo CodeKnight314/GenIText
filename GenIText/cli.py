@@ -79,7 +79,7 @@ def title_screen():
     click.echo(click.style("╚██████╔╝███████╗██║ ╚████║██║   ██║   ███████╗██╔╝ ██╗   ██║   ", fg="red", bold=True))
     click.echo(click.style(" ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝   ╚═╝   ", fg="red", bold=True))
     
-    click.echo("\nWelcome to GENITEXT v0.3.1! This package is designed to generate captions for a list of images using an End2End pipeline.")
+    click.echo("\nWelcome to GENITEXT! This package is designed to generate captions for a list of images using an End2End pipeline.")
     click.echo("Type '/help' to see the available commands.")
 
 @click.group(invoke_without_command=True)
