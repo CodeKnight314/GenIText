@@ -11,11 +11,6 @@ GenIText will become distributable as a CLI tool once package is ready for testi
 
 ## Table of Contents
 - [Installation](#installation)
-- [Results](#results)
-- [Usage](#usage)
-  - [Inference](#inference)
-  - [Training](#training)
-  - [Dataset Preparation](#dataset-preparation)
 
 ## Installation
 GenIText is available as a Python package and can be installed easily using `pip`. 
