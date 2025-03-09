@@ -27,7 +27,8 @@ setup(
         "transformers", 
         "typing-extensions", 
         "ollama",
-        "click"
+        "click",
+        "prompt-toolkit"
     ],
     entry_points={
         "console_scripts": [

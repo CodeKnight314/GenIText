@@ -11,4 +11,5 @@ numpy
 transformers
 typing-extensions
 ollama
-auto-click-auto
+prompt-toolkit
+click
