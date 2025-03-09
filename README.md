@@ -11,6 +11,16 @@ GenIText will become distributable as a CLI tool once package is ready for testi
 
 ## Table of Contents
 - [Installation](#installation)
+- [Benchmarks](#Benchmarks)
+
+## Benchmarks
+| Model         | Auto-Batch Memory Usage | Auto-Batch Seconds per Image | 1 Batch Memory Usage | 1 Batch Seconds per Image |
+|--------------|------------------------|-----------------------------|----------------------|-------------------------|
+| LLaVA 7B     | 17,978 MB               | 3.25                        | 7,014 MB             | 3.62                    |
+| ViT-GPT2 0.27B | 7,570 MB                | 0.08                        | 914 MB               | 0.79                    |
+| BLIPv2 2.7B  | 13,534 MB               | 0.25                        | 4,590 MB             | 2.53                    |
+
+All models were tested on 502 random image from kaggle dataset found [here](https://www.kaggle.com/datasets/cyanex1702/cyberversecyberpunk-imagesdataset). Images were resized based on their config files and tested on GeForce RTX 4090 Graphics Card with 24 Gb memory.
 
 ## Installation
 GenIText is available as a Python package and can be installed easily using `pip`. 
