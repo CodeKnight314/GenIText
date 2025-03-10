@@ -10,6 +10,7 @@ from glob import glob
 import os 
 from tqdm import tqdm
 from dataclasses import dataclass
+import traceback
 
 tracker = PerformanceTracker()
 
@@ -20,33 +21,8 @@ class RefinerResults:
     scores: float
     raw_score: float
 
-def postprocess_llava(output: str) -> str:
-    """
-    Enhanced processing for LLaVA output to ensure complete captions without unwanted line breaks.
-    
-    Args:
-        output: Raw output from the LLaVA model
-        
-    Returns:
-        Cleaned and completed caption as a single coherent paragraph
-    """
-    if not output:
-        return ""
-    
-    if "ASSISTANT:" in output:
-        output = output[output.find("ASSISTANT:") + len("ASSISTANT:"):]
-    
-    output = output.strip()
-    output = ' '.join([line.strip() for line in output.split('\n') if line.strip()])
-    output = ' '.join(output.split())
-    
-    if output and not output[-1] in ('.', '!', '?', ':', ';'):
-        output = output + "."
-    
-    return output
-
 @tracker.track_function
-def generate_prompt_population(prompt: str, n: int) -> List[str]:
+def generate_prompt_population(prompt: str, n: int, model: str = "deepseek-r1:7b") -> List[str]:
     """
     Generates a list of n prompt variations based on the given prompt.
     
@@ -62,7 +38,7 @@ def generate_prompt_population(prompt: str, n: int) -> List[str]:
     
     input_content = PROMPT_POPULAITON_INST.format(prompt=prompt, n=n)
     with tracker.track_subroutine("Prompt Generation"):
-        population = llm_query(input_content, system_prompt, deep_think=False)
+        population = llm_query(input_content, system_prompt, model=model, deep_think=False)
         
     variants = []
     for line in population.strip().split("\n"):
@@ -71,6 +47,11 @@ def generate_prompt_population(prompt: str, n: int) -> List[str]:
             variants.append(line)
         except ValueError as e: 
             continue
+        
+    if len(variants) < n:
+        variants += generate_prompt_population(prompt, n - len(variants), model)
+    elif len(variants) > n:
+        variants = variants[:n]
     
     return variants
 
@@ -79,22 +60,30 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
     batch = {}
     
     total = 0.0
-    pbar = tqdm(prompts, desc="Scoring Prompts")
+    pbar = tqdm(prompts, desc="Scoring Prompts", position=1, leave=False)
     
+    if isinstance(prompts, str):
+        prompts = [prompts]
+            
     min_score = float('inf') 
     max_score = float('-inf')
     for prompt in pbar: 
         scores = []
         for img in images:
-            with tracker.track_subroutine("Image Captioning"):
-                inputs = processor.preprocess(img, prompt)
-                outputs = model.caption_images(inputs)
-                caption = processor.postprocess(outputs)
+            try:
+                with tracker.track_subroutine("Image Captioning"):
+                    inputs = processor.preprocess(img, prompt)
+                    outputs = model.caption_images(inputs)
+                    caption = processor.postprocess(outputs)
 
-            caption = postprocess_llava(caption[0])
-                
-            with tracker.track_subroutine("Scoring"):
-                scores.append(reranker.score(img, caption))
+                caption = processor.clean_string(caption[0])
+                    
+                with tracker.track_subroutine("Scoring"):
+                    scores.append(reranker.score(img, caption))
+            except Exception as e:
+                print(f"Error processing image with prompt '{prompt[:30]}...': {str(e)}")
+                traceback.print_exc()
+                scores.append(0.0)
             
         prompt_score = sum(scores) / temperature
             
@@ -106,13 +95,19 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
         
         pbar.set_postfix({'Average_score': total / len(batch)})
     
-    for key in batch.keys():
-        batch[key].scores = (batch[key].scores - min_score) / (max_score - min_score)
+    score_range = max_score - min_score
+    if score_range == 0:
+        for key in batch.keys():
+            batch[key].scores = 1.0 / len(batch) if batch else 0
+    else:
+        for key in batch.keys():
+            batch[key].scores = (batch[key].scores - min_score) / score_range
 
     normalized_total = sum(float(batch[key].scores.item()) if hasattr(batch[key].scores, 'item') else float(batch[key].scores) for key in batch.keys())
 
-    for key in batch.keys():
-        batch[key].scores = batch[key].scores / normalized_total
+    if normalized_total > 0:
+        for key in batch.keys():
+            batch[key].scores = batch[key].scores / normalized_total
     
     return batch
 
@@ -135,7 +130,8 @@ def mutate_crossover(
     parent_1: str,
     parent_2: str,
     output_format: str,
-    context: Union[str, None] = None
+    context: Union[str, None] = None,
+    model: str = "deepseek-r1:7b",
 ) -> str:
     """
     Combines two parent prompts and formats them according to specified output format.
@@ -159,11 +155,12 @@ def mutate_crossover(
 
     mutate_instruction = MUTATE_PROMPT_INST.format(output_format=output_format)
 
-    merged_result = llm_query(crossover_instruction, system_context).strip()
+    merged_result = llm_query(crossover_instruction, system_context, model=model).strip()
 
     final_result = llm_query(
         f"{mutate_instruction}\n\nMerged Prompt:\n{merged_result}",
-        system_context
+        system_context,
+        model=model
     ).strip()
 
     if "<prompt>" in final_result and "</prompt>" in final_result:
@@ -188,6 +185,7 @@ def refiner(prompt: str,
         config = get_default_config(model_id)
         
     model, processor = choose_model(model_id, config)
+    ollama_model = model.ollama_model
     reranker = CLIPReranker()
 
     if isinstance(image_dir, str):
@@ -200,40 +198,56 @@ def refiner(prompt: str,
         if img_path is not None and os.path.isfile(img_path):
             valid_img_list.append(img_path)
         else:
-            print("Skipping invalid path:", img_path)
+            continue
             
     img_list = valid_img_list
     img_list = [Image.open(img_path) for img_path in valid_img_list]
     img_list = [img.resize((processor.img_h, processor.img_w)) for img in img_list]
     
-    population = caption_images(img_list, generate_prompt_population(prompt, population_size), model, processor, reranker)
+    initial_prompts = generate_prompt_population(prompt, population_size, ollama_model)
+    
+    population = caption_images(img_list, initial_prompts, model, processor, reranker)
     
     try:
-        pbar = tqdm(range(generations), desc="Generations")
+        pbar = tqdm(range(generations), desc="Generations", position=0)
         for gen in pbar: 
-            p1, p2 = choose_parents(population)
-            mutant = mutate_crossover(p1, p2, context)
-            mutated_population = generate_prompt_population(mutant, population_size)
-            
-            m_scores = caption_images(img_list, mutated_population, model, processor, reranker)
-            population = {**population, **m_scores}
-            avg = sum(item.raw_score for item in population.values()) / len(population)
-            
-            keys_to_remove = []
-            for key in population.keys():
-                if(population[key].raw_score < avg) and len(population) > population_size: 
-                    keys_to_remove.append(key)
+            try:
+                p1, p2 = choose_parents(population)
+                
+                mutant = mutate_crossover(p1, p2, context, ollama_model)
+                
+                mutated_population = generate_prompt_population(mutant, population_size, ollama_model)  # Generate fewer to avoid doubling
+                
+                m_scores = caption_images(img_list, mutated_population, model, processor, reranker)
+                
+                population = {**population, **m_scores}
+                
+                if population:
+                    avg = sum(item.raw_score for item in population.values()) / len(population)
+                else:
+                    avg = 0
+                
+                keys_to_remove = []
+                for key in population.keys():
+                    if(population[key].raw_score < avg) and len(population) > population_size: 
+                        keys_to_remove.append(key)
 
-            for key in keys_to_remove:
-                if len(population) > population_size:
-                    del population[key]
-                    
-            pop_total = sum(item.score for item in population.values())
-            for key in population.keys():
-                population[key].scores = population[key].scores / pop_total
-            
-            save_prompts(list(population.keys()), f"population_{gen}.txt")     
-            pbar.set_postfix({'avg_score': avg})
+                for key in keys_to_remove:
+                    if len(population) > population_size:
+                        del population[key]
+                
+                pop_total = sum(item.scores for item in population.values()) if population else 0
+                if pop_total > 0:
+                    for key in population.keys():
+                        population[key].scores = population[key].scores / pop_total
+                
+                save_prompts(list(population.keys()), f"population_{gen}.txt")
+                pbar.set_postfix({'avg_score': avg, 'population': len(population)})
+                
+            except Exception as e:
+                print(f"Error in generation {gen}: {str(e)}")
+                traceback.print_exc()
+                continue
     
     except KeyboardInterrupt:
         return {
