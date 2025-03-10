@@ -18,6 +18,8 @@ class BaseModel(ABC):
         self.model_config = config["model"]
         self.gen_config = config["generation"]
         self.auto_batch = config["model"]["auto_batch"]
+        
+        self.ollama_model = config["model"]["ollama"]
     
     @abstractmethod
     def load_model(self) -> None:
