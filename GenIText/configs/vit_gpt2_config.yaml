@@ -7,6 +7,7 @@ model:
   quantize:
     enabled: true
     quant_type: "8bit"
+  ollama: "deepseek-r1:7b"
 
 generation: 
   max_new_tokens: 100
