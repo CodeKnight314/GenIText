@@ -201,7 +201,7 @@ def refine(prompt: str, image_dir: str, context: str, model: str = "llava", pop:
             click.echo(f"[WARNING] Path {i} does not exist: {path}")
         
 
-    click.echo(f"[INFO] Model: {model}, Config: Default, Population: {pop}, Generations: {gen}")
+    click.echo(f"[INFO] Model: {model}, Population: {pop}, Generations: {gen}")
     
     refined_prompt = refiner(
         prompt=prompt, 
@@ -214,9 +214,9 @@ def refine(prompt: str, image_dir: str, context: str, model: str = "llava", pop:
     )
     
     optimal_prompt = refined_prompt["population"][0]
-    optimal_score = refined_prompt["scores"][0]
     
-    click.echo(f"[INFO] Refined prompt: \n{optimal_prompt} \n[INFO] Score: {optimal_score}")
+    click.echo(f"[INFO] Initial prompt: \n{prompt}")
+    click.echo(f"[INFO] Refined prompt: \n{optimal_prompt}")
 
 def start_interactive_shell(): 
     os.system('clear' if os.name == 'posix' else 'cls')
