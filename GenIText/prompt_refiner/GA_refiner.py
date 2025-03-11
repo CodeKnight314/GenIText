@@ -6,6 +6,7 @@ from GenIText.prompt_refiner.prompts import *
 from GenIText.models import *
 from GenIText.PA_track import PerformanceTracker
 from GenIText.prompt_refiner.GA_utils import *
+from GenIText.prompt_refiner.GA_LLM_Judge import llm_score
 from glob import glob 
 import os 
 from tqdm import tqdm
@@ -77,9 +78,13 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
                     caption = processor.postprocess(outputs)
 
                 caption = processor.clean_string(caption[0])
-                    
+                
+                score = 0.0
                 with tracker.track_subroutine("Scoring"):
-                    scores.append(reranker.score(img, caption))
+                    score += reranker.score(img, caption)
+                    score += llm_score(prompt, caption, model)
+                scores.append(score)
+                
             except Exception as e:
                 print(f"Error processing image with prompt '{prompt[:30]}...': {str(e)}")
                 traceback.print_exc()
