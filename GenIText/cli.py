@@ -16,6 +16,7 @@ from GenIText.pipelines import End2EndCaptionPipeline
 from GenIText.prompt_refiner import refiner
 from GenIText.utils import *
 from GenIText.config_editor import ConfigEditor
+from GenIText.prompt_refiner.GA_utils import get_valid_image_files
 
 warnings.filterwarnings("ignore")
 logging.set_verbosity_error()
@@ -174,7 +175,7 @@ def config(model: str):
 @cli.command()
 @click.argument("prompt")
 @click.argument("image_dir", type=click.Path(exists=True))
-@click.argument("context")
+@click.argument("context", default=None)
 @click.option("--model", "-m", default="llava", type=click.Choice(list(End2EndCaptionPipeline.models.keys())), help="Model to use for refinement.")
 @click.option("--pop", "-p", default=5, help="Population size for refinement.")
 @click.option("--gen", "-g", default=5, help="Number of generations for refinement.")
@@ -188,7 +189,7 @@ def refine(prompt: str, image_dir: str, context: str, model: str = "llava", pop:
         image_paths = [image_dir]
         click.echo(f"[INFO] Single file mode: {image_paths}")
     elif os.path.isdir(image_dir):
-        image_paths = [os.path.join(image_dir, img) for img in os.listdir(image_dir)]
+        image_paths = get_valid_image_files(image_dir)
         click.echo(f"[INFO] Directory mode: Found {len(image_paths)} files")
     else:
         raise FileNotFoundError(f"[ERROR] {image_dir} not found.")
