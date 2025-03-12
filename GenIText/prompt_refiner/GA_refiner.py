@@ -1,17 +1,18 @@
-from ollama import chat
-from PIL import Image
-import random
-from typing import List, Union, Dict, Tuple
-from GenIText.prompt_refiner.prompts import *
-from GenIText.models import *
-from GenIText.PA_track import PerformanceTracker
-from GenIText.prompt_refiner.GA_utils import *
-from GenIText.prompt_refiner.GA_LLM_Judge import llm_score
-from glob import glob 
 import os 
+import random
+import traceback
+from PIL import Image
+from glob import glob 
 from tqdm import tqdm
 from dataclasses import dataclass
-import traceback
+from typing import List, Union, Dict
+
+from GenIText.models import *
+from GenIText.prompt_refiner.GA_utils import get_valid_image_files, color_diff
+from GenIText.prompt_refiner.prompts import *
+from GenIText.prompt_refiner.GA_utils import *
+from GenIText.PA_track import PerformanceTracker
+from GenIText.prompt_refiner.GA_LLM_Judge import llm_score
 
 tracker = PerformanceTracker()
 
@@ -57,11 +58,15 @@ def generate_prompt_population(prompt: str, n: int, model: str = "deepseek-r1:7b
     return variants
 
 @tracker.track_function
-def caption_images(images: List[Image.Image], prompts: Union[List[str], str], model, processor, reranker, temperature: float = 0.5): 
+def caption_images(images: List[Image.Image], 
+                   prompts: Union[List[str], str], 
+                   model: BaseModel, processor: BaseModel, 
+                   reranker: CLIPReranker, 
+                   temperature: float = 0.5): 
     batch = {}
     
     total = 0.0
-    pbar = tqdm(prompts, desc="Scoring Prompts", position=1, leave=False)
+    pbar = tqdm(prompts, desc="Scoring Prompts", position=2, leave=False)
     
     if isinstance(prompts, str):
         prompts = [prompts]
@@ -81,9 +86,12 @@ def caption_images(images: List[Image.Image], prompts: Union[List[str], str], mo
                 
                 score = 0.0
                 with tracker.track_subroutine("Scoring"):
-                    score += reranker.score(img, caption)
-                    score += llm_score(prompt, caption, model)
+                    r_score = reranker.score(img, caption) * 100
+                    l_score = llm_score(prompt, caption, model.ollama_model)
+                    score += 0.5 * l_score + 0.5 * r_score
                 scores.append(score)
+                
+                pbar.set_postfix({"llm_score": l_score, "reranker_score": r_score})
                 
             except Exception as e:
                 print(f"Error processing image with prompt '{prompt[:30]}...': {str(e)}")
@@ -185,7 +193,6 @@ def refiner(prompt: str,
            config: str, 
            context: Union[str, None] = None):
 
-    
     if config is None:
         config = get_default_config(model_id)
         
@@ -194,43 +201,42 @@ def refiner(prompt: str,
     reranker = CLIPReranker()
 
     if isinstance(image_dir, str):
-        img_list = glob(os.path.join(image_dir, "*"))
+        img_list = get_valid_image_files(image_dir)
     else:
         img_list = image_dir
-
-    valid_img_list = []
-    for img_path in img_list:
-        if img_path is not None and os.path.isfile(img_path):
-            valid_img_list.append(img_path)
-        else:
-            continue
             
-    img_list = valid_img_list
-    img_list = [Image.open(img_path) for img_path in valid_img_list]
+    img_list = [Image.open(img_path) for img_path in img_list]
     img_list = [img.resize((processor.img_h, processor.img_w)) for img in img_list]
     
     initial_prompts = generate_prompt_population(prompt, population_size, ollama_model)
     
     population = caption_images(img_list, initial_prompts, model, processor, reranker)
     
+    status_bar = tqdm(
+        total=1, 
+        bar_format="{desc}", 
+        position=0,
+        leave=True
+    )
+    
+    status_bar.set_description_str(f"Current prompt: {prompt}")
+    status_bar.refresh()
+    
+    pbar = tqdm(range(generations), desc="Generations", position=1)
+    
+    current_prompt = prompt
     try:
-        pbar = tqdm(range(generations), desc="Generations", position=0)
         for gen in pbar: 
             try:
                 p1, p2 = choose_parents(population)
                 
                 mutant = mutate_crossover(p1, p2, context, ollama_model)
-                
-                mutated_population = generate_prompt_population(mutant, population_size, ollama_model)  # Generate fewer to avoid doubling
-                
+                mutated_population = generate_prompt_population(mutant, population_size, ollama_model)
                 m_scores = caption_images(img_list, mutated_population, model, processor, reranker)
                 
                 population = {**population, **m_scores}
                 
-                if population:
-                    avg = sum(item.raw_score for item in population.values()) / len(population)
-                else:
-                    avg = 0
+                avg = sum(item.raw_score for item in population.values()) / len(population)
                 
                 keys_to_remove = []
                 for key in population.keys():
@@ -246,7 +252,13 @@ def refiner(prompt: str,
                     for key in population.keys():
                         population[key].scores = population[key].scores / pop_total
                 
-                save_prompts(list(population.keys()), f"population_{gen}.txt")
+                population = dict(sorted(population.items(), key=lambda x: x[1].scores, reverse=True))
+                best_prompt = next(iter(population))
+                
+                current_prompt = color_diff(current_prompt, best_prompt)
+                status_bar.set_description_str(f"Highest scoring prompt: {current_prompt}")
+                status_bar.refresh()
+                
                 pbar.set_postfix({'avg_score': avg, 'population': len(population)})
                 
             except Exception as e:

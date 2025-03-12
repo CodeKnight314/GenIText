@@ -5,7 +5,6 @@ from GenIText.prompt_refiner.GA_utils import llm_query
 def llm_score(
     caption: str, 
     prompt: str, 
-    criteria: Optional[Dict[str, float]] = None,
     model: str = "deepseek-r1:1.5b",
     deep_think: bool = False
 ) -> float:
@@ -25,13 +24,12 @@ def llm_score(
     Returns:
         A single float score representing the quality of the caption
     """
-    if criteria is None:
-        criteria = {
-            "relevance": 0.4,
-            "accuracy": 0.3, 
-            "coherence": 0.2,
-            "creativity": 0.1
-        }
+    criteria = {
+        "relevance": 0.4,
+        "accuracy": 0.3, 
+        "coherence": 0.2,
+        "creativity": 0.1
+    }
     
     system_context = f"""
     You are an expert caption evaluator. Your task is to evaluate how well a caption matches its prompt.
