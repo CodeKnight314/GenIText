@@ -4,6 +4,11 @@ from ollama import chat
 from GenIText.models import LlavaModel, ViTGPT2Model, BLIPv2Model, LlavaProcessor, VITGPT2Processor, BLIPv2_Processor
 import importlib.resources
 import os
+import difflib
+
+RED = "\033[91m"
+GREEN = "\033[92m"
+RESET = "\033[0m"
 
 THINK_PATTERN = re.compile(r'<think>(.*?)</think>', re.DOTALL)
 
@@ -102,3 +107,49 @@ def get_default_config(model_id: str):
     except (ImportError, ModuleNotFoundError):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base_dir, 'configs', f'{model_id}_config.yaml')
+
+def get_valid_image_files(dir: str):
+    """
+    Returns a list of valid image files (png, jpg, jpeg) from a directory.
+    
+    Args:
+        dir: Directory path to search for images
+        
+    Returns:
+        List of full paths to valid image files
+        
+    Raises:
+        ValueError: If the directory doesn't exist
+    """
+    if os.path.exists(dir):
+        img_list = os.listdir(dir)
+        img_list = [os.path.join(dir, img) for img in img_list]
+
+        for img in img_list:
+            if not os.path.isfile(img):
+                img_list.remove(img)
+            elif not img.lower().endswith(('.png', '.jpg', '.jpeg')):
+                img_list.remove(img)
+        
+        return img_list
+    else:
+        raise ValueError(f"Image directory path {dir} does not exist")
+    
+def color_diff(old_text: str, new_text: str):
+    sm = difflib.SequenceMatcher(None, old_text, new_text)
+    result = []
+    for opcode, a0, a1, b0, b1 in sm.get_opcodes():
+        if opcode == 'equal':
+            result.append(old_text[a0:a1])
+        elif opcode == 'insert':
+            inserted_text = new_text[b0:b1]
+            result.append(f"{GREEN}{inserted_text}{RESET}")
+        elif opcode == 'delete':
+            deleted_text = old_text[a0:a1]
+            result.append(f"{RED}{deleted_text}{RESET}")
+        elif opcode == 'replace':
+            deleted_text = old_text[a0:a1]
+            inserted_text = new_text[b0:b1]
+            result.append(f"{RED}{deleted_text}{RESET}")
+            result.append(f"{GREEN}{inserted_text}{RESET}")
+    return ''.join(result)
