@@ -1,12 +1,13 @@
 import os
 from tqdm import tqdm
-from typing import Dict, List
+from typing import Dict, List, Union
 from random import sample
 import requests
 import zipfile
 from PIL import Image
 import json
 import shutil
+import subprocess
 
 def download_dataset(url: str = None, path: str = "dataset/"):
     if url is None:
@@ -198,3 +199,29 @@ def remove_model_cache(model_url: str):
         return True
     else:
         return False
+    
+def embed_metadata(image_path, caption: str, keywords: Union[List[str], str] = None):
+    """
+    Embed metadata into an image.
+    
+    Args:
+        image_path (str): Path to the image.
+        caption (str): Caption to embed.
+        keywords (Union[List[str], str]): Keywords to embed.
+    """
+    if(caption == None):
+        caption = ""
+        
+    cmd = ["exiftool", "-overwrite_original"]
+    
+    if caption != None:
+        cmd.append(f"-IPTC:Caption-Abstract={caption}")
+        
+    if keywords != None:
+        if isinstance(keywords, str):
+            keywords = keywords.split(",")
+        for keyword in keywords:
+            cmd.append(f"-IPTC:Keywords={keyword}")
+    
+    cmd.append(image_path)
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) 
