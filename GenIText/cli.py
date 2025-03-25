@@ -115,9 +115,10 @@ def models():
 @cli.command() 
 @click.argument("image_path", type=click.Path(exists=True))
 @click.option("--model", "-m", default="vit_gpt2", type=click.Choice(list(End2EndCaptionPipeline.models.keys())), help="Model name to use for captioning.")
-@click.option("--output", "-o", default="output/", help="Output directory.") 
+@click.option("--output", "-o", default=None, help="Output directory.") 
 @click.option("--format", "-f", default="json", type=click.Choice(['json', 'jsonl', 'csv', 'img&txt'], case_sensitive=False), help="Output format (json/jsonl/csv/img&txt).")       
-def caption(image_path: str, model: str, output: str, format: str):
+@click.option("--keyword", "-k", is_flag=True, help="Embed metadata in the image files.")
+def caption(image_path: str, model: str, output: str, format: str, keyword: bool):
     """
     Generate captions for a list of images.
     """
@@ -132,18 +133,28 @@ def caption(image_path: str, model: str, output: str, format: str):
     pipeline = End2EndCaptionPipeline(model=model, config=None)
     
     captions = pipeline.generate_captions(image_paths)
-    os.makedirs(output, exist_ok=True)
     
-    if format == "json":
-        save_caption_as_json(captions, output)
-    elif format == "jsonl":
-        save_caption_as_jsonl(captions, output)
-    elif format == "csv":
-        save_caption_as_csv(captions, output)
-    elif format == "img&txt":
-        save_images_and_txt(captions, output)
+    if output is not None:
+        os.makedirs(output, exist_ok=True)
+        
+        if format == "json":
+            save_caption_as_json(captions, output)
+        elif format == "jsonl":
+            save_caption_as_jsonl(captions, output)
+        elif format == "csv":
+            save_caption_as_csv(captions, output)
+        elif format == "img&txt":
+            save_images_and_txt(captions, output)
+        else: 
+            raise ValueError(f"[ERROR] Invalid format: {format}")
+    
+    if keyword:
+        for img, cap in tqdm(zip(image_paths, captions), desc="Embedding metadata"):
+            embed_metadata(img, None, cap)
     else: 
-        raise ValueError(f"[ERROR] Invalid format: {format}")
+        for img, cap in tqdm(zip(image_paths, captions), desc="Embedding metadata"):
+            embed_metadata(img, cap, None)
+    click.echo("[INFO] Metadata embedded in image files")
     
     click.echo(f"[INFO] Captions saved to {output}")
     
